@@ -1,0 +1,9 @@
+# Rojo / Roblox build artifacts
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+build-test.rbxlx
+
+# OS
+.DS_Store
