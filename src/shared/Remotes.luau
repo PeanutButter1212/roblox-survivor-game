@@ -16,6 +16,8 @@ local NAMES = {
 	"OpenSkillTree",
 	-- client -> server: the player wants to buy the next level of skill path <id>.
 	"UpgradeSkill",
+	-- server -> client: a daily login bonus was granted. Carries { day, reward }.
+	"DailyBonus",
 }
 
 local Remotes = {}

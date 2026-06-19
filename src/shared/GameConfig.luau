@@ -57,4 +57,18 @@ function GameConfig.coinReward(stageNumber: number, isFirstClear: boolean): numb
 	return math.floor(full * GameConfig.Coins.ReplayFactor)
 end
 
+-- Daily login bonus. The reward grows with the consecutive-day streak (day 1 = 10, day 2
+-- = 20, ...), capped at MaxStreak days so it can't grow without bound. Missing a day
+-- resets the streak.
+GameConfig.Daily = {
+	BaseReward = 10, -- coins per streak day (streak 1 pays this, streak 2 pays double, ...)
+	MaxStreak = 30, -- streak multiplier is capped here
+}
+
+-- Coins granted for a daily claim at a given consecutive-day `streak`.
+function GameConfig.dailyReward(streak: number): number
+	local effective = math.min(streak, GameConfig.Daily.MaxStreak)
+	return effective * GameConfig.Daily.BaseReward
+end
+
 return GameConfig

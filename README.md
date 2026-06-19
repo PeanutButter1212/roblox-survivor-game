@@ -29,6 +29,12 @@ and grants a much bigger buff. Purchases are validated on the server, persist wi
 save, and stack on top of the in-run level-up upgrades. Tune paths/costs in
 `data/Skills.luau`.
 
+**Daily login bonus:** the first time you join on a new (UTC) day you're automatically
+granted bonus coins, shown as a popup. The reward grows with your **consecutive-day
+streak** — day 1 = 10, day 2 = 20, day 3 = 30, … — and **resets if you miss a day**. The
+streak multiplier is capped (`GameConfig.Daily.MaxStreak`) so it can't grow forever. Tune
+the base amount/cap in `GameConfig.Daily`.
+
 **Multiplayer & stages:** each player gets their **own private arena** — when you touch
 the portal you're sent to a stage instance built far away in the same server, so players
 never collide. Everyone progresses through **stages independently**; your highest cleared
@@ -40,6 +46,9 @@ DataStores. Roblox hosts all of this — no external backend.
 ### Controls
 - Move with **WASD**. Your gun(s) fire automatically.
 - Touch the portal to start. On level-up, click one of the three spun upgrades.
+- In the lobby: touch the **◀ PREV / NEXT ▶** pads to pick which stage to play (farm a
+  beaten one or push the next), and **click the SKILL TREE board** to spend coins on
+  permanent character buffs.
 
 ### Where to tune things
 - `src/shared/GameConfig.luau` — world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards** (`GameConfig.Coins`).
@@ -53,8 +62,8 @@ Code is organised into small, documented OOP classes (one responsibility each).
 
 | Folder        | Syncs into Studio at          | What's there                                            |
 | ------------- | ----------------------------- | ------------------------------------------------------- |
-| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CombatService, ProgressionService, PlayerProfile, LevelManager, DataService, SkillTreeService |
-| `src/client`  | StarterPlayerScripts > Client | Controllers: CameraController, HudController, UpgradeSpinController, SkillTreeController |
+| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CombatService, ProgressionService, PlayerProfile, LevelManager, DataService, SkillTreeService, DailyRewardService |
+| `src/client`  | StarterPlayerScripts > Client | Controllers: CameraController, HudController, UpgradeSpinController, SkillTreeController, DailyBonusController |
 | `src/shared`  | ReplicatedStorage > Shared    | `GameConfig`, `Remotes`, `util/` (Class, RandomUtil), `data/` (Rarities, Weapons, Upgrades, Skills) |
 
 Mapping is defined in `default.project.json`.

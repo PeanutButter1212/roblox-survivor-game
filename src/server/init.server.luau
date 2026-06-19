@@ -17,6 +17,7 @@ local StageService = require(script:WaitForChild("StageService"))
 local LevelManager = require(script:WaitForChild("LevelManager"))
 local DataService = require(script:WaitForChild("DataService"))
 local SkillTreeService = require(script:WaitForChild("SkillTreeService"))
+local DailyRewardService = require(script:WaitForChild("DailyRewardService"))
 
 local progression = ProgressionService.new()
 local combat = CombatService.new()
@@ -24,11 +25,14 @@ local stageService = StageService.new(progression, combat)
 local _level = LevelManager.new(progression, stageService)
 local dataService = DataService.new(progression)
 local _skillTree = SkillTreeService.new(progression)
+local dailyReward = DailyRewardService.new(progression)
 
--- A joining player gets a profile, then their saved progression loaded over it.
+-- A joining player gets a profile, their saved progression loaded over it, then their
+-- daily login bonus evaluated (granted once per day, growing with their streak).
 local function onPlayerAdded(player: Player)
 	progression:setupPlayer(player)
 	dataService:load(player)
+	dailyReward:grantIfDue(player)
 end
 Players.PlayerAdded:Connect(onPlayerAdded)
 for _, player in Players:GetPlayers() do

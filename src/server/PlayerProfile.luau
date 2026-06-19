@@ -38,6 +38,8 @@ function PlayerProfile.new(player: Player)
 	self.coins = 0 -- soft currency earned by clearing stages (persisted)
 	self.maxStageCleared = 0 -- highest stage number ever cleared; gates stage selection
 	self.skills = { health = 0, speed = 0, damage = 0 } -- lobby skill-tree levels (persisted)
+	self.lastClaimDay = 0 -- UTC day index of the last daily-bonus claim (persisted)
+	self.dailyStreak = 0 -- consecutive-day login streak (persisted)
 	-- Level-up upgrade flow state (managed by ProgressionService): how many level-ups
 	-- are waiting, and the 3 options currently being shown (nil when none).
 	self.levelUpQueue = 0
@@ -216,6 +218,22 @@ function PlayerProfile:incrementSkill(pathId: string)
 	self.player:SetAttribute("Skill_" .. pathId, self.skills[pathId])
 end
 
+-- The UTC day index of the player's most recent daily-bonus claim (0 if never).
+function PlayerProfile:getLastClaimDay(): number
+	return self.lastClaimDay
+end
+
+-- The player's current consecutive-day login streak.
+function PlayerProfile:getDailyStreak(): number
+	return self.dailyStreak
+end
+
+-- Records a daily-bonus claim: the day it happened and the resulting streak.
+function PlayerProfile:recordDailyClaim(day: number, streak: number)
+	self.lastClaimDay = day
+	self.dailyStreak = streak
+end
+
 -- Toggles invulnerability by adding/removing a ForceField on the character. Roblox's
 -- Humanoid:TakeDamage is a no-op while a ForceField is present, so this safely shields
 -- a player while they pick an upgrade without freezing the rest of the game.
@@ -254,6 +272,8 @@ function PlayerProfile:serialize(): any
 		coins = self.coins,
 		maxStageCleared = self.maxStageCleared,
 		skills = skills,
+		lastClaimDay = self.lastClaimDay,
+		dailyStreak = self.dailyStreak,
 		stats = {
 			damageMult = self.stats.damageMult,
 			fireRateMult = self.stats.fireRateMult,
@@ -275,6 +295,8 @@ function PlayerProfile:load(data: any)
 	self.stage = data.stage or self.stage
 	self.coins = data.coins or self.coins
 	self.maxStageCleared = data.maxStageCleared or self.maxStageCleared
+	self.lastClaimDay = data.lastClaimDay or self.lastClaimDay
+	self.dailyStreak = data.dailyStreak or self.dailyStreak
 	self.player:SetAttribute("Stage", self.stage)
 	self.player:SetAttribute("MaxStage", self.maxStageCleared)
 	self.player:SetAttribute("Coins", self.coins)
