@@ -23,13 +23,14 @@ your choice shows on the portal "door" (**▶ STAGE N**) before you touch it to 
 choose between grinding a beaten stage and pushing into the next one. Coins are spent in the
 lobby **skill tree** (below).
 
-**Skill tree:** a clickable **board in the spawn area** opens a panel with three permanent
-**character** buff paths — **Max Health**, **Move Speed**, **Damage** (these buff your
-character, not your weapons). Each path runs to **20 levels**; normal levels cost **100
-coins**, and every **5th** level (5/10/15/20) is a **⭐ super** upgrade that costs **500**
-and grants a much bigger buff. Purchases are validated on the server, persist with your
-save, and stack on top of the in-run level-up upgrades. Tune paths/costs in
-`data/Skills.luau`.
+**Skill tree:** a clickable **board in the spawn area** opens a visual tree with three
+permanent **character** buff branches — **Max Health**, **Move Speed**, **Damage** (these
+buff your character, not your weapons). Each branch shows all **20 nodes** strung along a
+spine that fills in as you buy: owned nodes are coloured, the next node glows, the rest are
+locked, and every **5th** node (5/10/15/20) is a larger gold-ringed **⭐ super** upgrade.
+Hovering any node shows its effect, cost, and state. Normal levels cost **100 coins**,
+supers cost **500**. Purchases are validated on the server, persist with your save, and
+stack on top of the in-run level-up upgrades. Tune branches/costs in `data/Skills.luau`.
 
 **Daily login bonus:** the first time you join on a new (UTC) day you're automatically
 granted bonus coins, shown as a popup. The reward grows with your **consecutive-day
