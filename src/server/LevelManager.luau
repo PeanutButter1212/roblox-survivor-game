@@ -11,6 +11,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local LevelManager = Class.new()
 
@@ -21,11 +22,17 @@ function LevelManager.new(progression: any, stageService: any)
 	self.progression = progression
 	self.stageService = stageService
 	self.touchDebounce = {} :: { [Player]: number }
-	self.stageChangeDebounce = {} :: { [Player]: number }
 
 	self:buildLobby()
 	self:buildPortal()
-	self:buildStageControls()
+	self:buildStageSelector()
+
+	-- The stage-select UI sends the player's chosen stage here; the profile clamps it.
+	Remotes.get("SelectStage").OnServerEvent:Connect(function(player, stageNumber)
+		if typeof(stageNumber) == "number" then
+			self:selectStage(player, stageNumber)
+		end
+	end)
 
 	-- Safety net: make sure players physically start in the lobby on (re)spawn, even
 	-- if the SpawnLocation isn't ready the instant the first character loads.
@@ -125,7 +132,7 @@ function LevelManager:buildPortal()
 	subtitle.Font = Enum.Font.Gotham
 	subtitle.TextScaled = true
 	subtitle.TextColor3 = Color3.fromRGB(200, 200, 255)
-	subtitle.Text = "Touch to start your next stage"
+	subtitle.Text = "Touch to enter the selected stage"
 	subtitle.Parent = billboard
 
 	portal.Touched:Connect(function(hit)
@@ -137,69 +144,61 @@ function LevelManager:buildPortal()
 	end)
 end
 
--- Builds the two lobby pads that let a player pick which stage the portal launches:
--- one steps the selection down, the other up. Selection is clamped server-side to what
--- the player has unlocked, so these are how you choose between farming a beaten stage
--- and advancing to the next one.
-function LevelManager:buildStageControls()
-	local center = GameConfig.World.LobbyCenter
-	-- Flank the portal (which sits toward -Z of the lobby) on either side.
-	self:makeStagePad("PrevStagePad", -1, center + Vector3.new(-16, 1, -24), "◀ PREV STAGE", Color3.fromRGB(80, 120, 200))
-	self:makeStagePad("NextStagePad", 1, center + Vector3.new(16, 1, -24), "NEXT STAGE ▶", Color3.fromRGB(90, 200, 120))
-end
-
--- Creates one stage-control pad: a flat neon pad with a floating label that, when
--- touched, shifts the toucher's selected stage by `delta` (clamped in the profile).
-function LevelManager:makeStagePad(name: string, delta: number, position: Vector3, text: string, color: Color3)
-	local pad = Instance.new("Part")
-	pad.Name = name
-	pad.Anchored = true
-	pad.Size = Vector3.new(10, 1, 8)
-	pad.Position = position
-	pad.Material = Enum.Material.Neon
-	pad.Color = color
-	pad.Transparency = 0.2
-	pad.Parent = Workspace
+-- Builds the clickable stage-select board standing next to the portal. Clicking it tells
+-- that player's client to open the stage picker (a list of every stage they've unlocked).
+-- The chosen stage comes back over the SelectStage remote and shows on the portal "door".
+function LevelManager:buildStageSelector()
+	local board = Instance.new("Part")
+	board.Name = "StageSelectBoard"
+	board.Anchored = true
+	board.Size = Vector3.new(1, 7, 8)
+	-- Stand it just beside the portal (portal is at PortalPosition, facing the arena).
+	board.Position = GameConfig.World.PortalPosition + Vector3.new(11, 0.5, 0)
+	board.Material = Enum.Material.SmoothPlastic
+	board.Color = Color3.fromRGB(40, 44, 60)
+	board.Parent = Workspace
 
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.fromOffset(150, 40)
-	billboard.StudsOffset = Vector3.new(0, 3, 0)
+	billboard.Size = UDim2.fromOffset(190, 70)
+	billboard.StudsOffset = Vector3.new(0, 5, 0)
 	billboard.AlwaysOnTop = true
-	billboard.Parent = pad
+	billboard.Parent = board
 
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.GothamBold
-	label.TextScaled = true
-	label.TextColor3 = Color3.fromRGB(255, 255, 255)
-	label.Text = text
-	label.Parent = billboard
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, 0, 0.6, 0)
+	title.BackgroundTransparency = 1
+	title.Font = Enum.Font.GothamBold
+	title.TextScaled = true
+	title.TextColor3 = Color3.fromRGB(120, 220, 255)
+	title.Text = "SELECT STAGE"
+	title.Parent = billboard
 
-	pad.Touched:Connect(function(hit)
-		local character = hit.Parent
-		local player = character and Players:GetPlayerFromCharacter(character)
-		if player then
-			self:changeStage(player, delta)
-		end
+	local subtitle = Instance.new("TextLabel")
+	subtitle.Size = UDim2.new(1, 0, 0.4, 0)
+	subtitle.Position = UDim2.new(0, 0, 0.6, 0)
+	subtitle.BackgroundTransparency = 1
+	subtitle.Font = Enum.Font.Gotham
+	subtitle.TextScaled = true
+	subtitle.TextColor3 = Color3.fromRGB(200, 220, 255)
+	subtitle.Text = "Click to choose a level"
+	subtitle.Parent = billboard
+
+	local click = Instance.new("ClickDetector")
+	click.MaxActivationDistance = 32
+	click.Parent = board
+	click.MouseClick:Connect(function(player)
+		Remotes.get("OpenStageSelect"):FireClient(player)
 	end)
 end
 
--- Shifts a player's selected stage by `delta`, debounced so a single step doesn't fire
--- repeatedly while they stand on the pad. Ignored while the player is mid-run.
-function LevelManager:changeStage(player: Player, delta: number)
-	local now = os.clock()
-	local last = self.stageChangeDebounce[player]
-	if last and now - last < 0.6 then
-		return
-	end
-	self.stageChangeDebounce[player] = now
-
+-- Sets the player's chosen stage (the profile clamps it to [1, highest cleared + 1], so
+-- they can pick anything they've unlocked but not skip ahead). Ignored mid-run.
+function LevelManager:selectStage(player: Player, stageNumber: number)
 	local profile = self.progression:getProfile(player)
 	if not profile or profile.inLevel then
 		return
 	end
-	profile:setStage(profile:getStage() + delta)
+	profile:setStage(stageNumber)
 end
 
 -- Starts the player's current stage in their own private arena. The StageInstance

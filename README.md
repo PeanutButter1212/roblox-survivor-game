@@ -7,19 +7,21 @@ your Mac syncs live into Roblox Studio.
 **portal** to drop into a **fixed walled arena** — the camera switches to top-down and a
 **3-minute survival timer** starts. Enemies spawn and chase you (and the swarm grows as
 the timer counts down) while your weapon auto-fires at the nearest one. Killing enemies
-drops XP; on level-up you get a brief shield and **three vertical slot-machine reels** —
-each spins to an upgrade of some **rarity** (Rare → Super Rare → Epic → Legendary; rarer
-= stronger but less likely) — and you click one to keep it. Survive to 0:00 to win. Die
+drops XP; on level-up **the run pauses** (timer holds, enemies freeze) and you get
+**three vertical slot-machine reels** — each spins to an upgrade of some **rarity** (Rare →
+Super Rare → Epic → Legendary; rarer = stronger but less likely) — and you click one to
+keep it. The run resumes once you've picked. Survive to 0:00 to win. Die
 and you return to the lobby; walk back through the portal to retry. Health, XP, and the
 timer are on the HUD.
 
 **Coins & farming:** clearing a stage pays **coins** (shown on the HUD). Your **first**
 clear of a given stage pays full; **replaying** an already-beaten stage pays a reduced
 rate (`GameConfig.Coins.ReplayFactor`), so you can farm a familiar stage over and over for
-a steady trickle. Clearing no longer auto-advances you — instead two lobby pads (**◀ PREV
-STAGE** / **NEXT STAGE ▶**) let you pick which stage the portal launches, clamped to
-anything you've cleared plus one. So you choose between grinding a beaten stage and pushing
-into the next one. Coins are spent in the lobby **skill tree** (below).
+a steady trickle. Clearing no longer auto-advances you — instead a **SELECT STAGE** board
+next to the portal opens a picker; click any unlocked stage (1 … highest cleared + 1) and
+your choice shows on the portal "door" (**▶ STAGE N**) before you touch it to enter. So you
+choose between grinding a beaten stage and pushing into the next one. Coins are spent in the
+lobby **skill tree** (below).
 
 **Skill tree:** a clickable **board in the spawn area** opens a panel with three permanent
 **character** buff paths — **Max Health**, **Move Speed**, **Damage** (these buff your
@@ -38,7 +40,7 @@ the base amount/cap in `GameConfig.Daily`.
 **Multiplayer & stages:** each player gets their **own private arena** — when you touch
 the portal you're sent to a stage instance built far away in the same server, so players
 never collide. Everyone progresses through **stages independently**; your highest cleared
-stage is saved, and the PREV/NEXT pads only unlock up to it. Stages scale forever (see `data/Stages.luau`).
+stage is saved, and the stage picker only unlocks up to it. Stages scale forever (see `data/Stages.luau`).
 Level-ups are per-player (only you see your picker; a shield keeps you safe while
 choosing). Progress (stage, level, unlocked weapons) is saved per player with Roblox
 DataStores. Roblox hosts all of this — no external backend.
@@ -46,9 +48,9 @@ DataStores. Roblox hosts all of this — no external backend.
 ### Controls
 - Move with **WASD**. Your gun(s) fire automatically.
 - Touch the portal to start. On level-up, click one of the three spun upgrades.
-- In the lobby: touch the **◀ PREV / NEXT ▶** pads to pick which stage to play (farm a
-  beaten one or push the next), and **click the SKILL TREE board** to spend coins on
-  permanent character buffs.
+- In the lobby: **click the SELECT STAGE board** to pick which stage to play (farm a beaten
+  one or push the next — your choice shows on the portal door), and **click the SKILL TREE
+  board** to spend coins on permanent character buffs.
 
 ### Where to tune things
 - `src/shared/GameConfig.luau` — world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards** (`GameConfig.Coins`).
@@ -63,7 +65,7 @@ Code is organised into small, documented OOP classes (one responsibility each).
 | Folder        | Syncs into Studio at          | What's there                                            |
 | ------------- | ----------------------------- | ------------------------------------------------------- |
 | `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CombatService, ProgressionService, PlayerProfile, LevelManager, DataService, SkillTreeService, DailyRewardService |
-| `src/client`  | StarterPlayerScripts > Client | Controllers: CameraController, HudController, UpgradeSpinController, SkillTreeController, DailyBonusController |
+| `src/client`  | StarterPlayerScripts > Client | Controllers: CameraController, HudController, UpgradeSpinController, SkillTreeController, DailyBonusController, StageSelectController |
 | `src/shared`  | ReplicatedStorage > Shared    | `GameConfig`, `Remotes`, `util/` (Class, RandomUtil), `data/` (Rarities, Weapons, Upgrades, Skills) |
 
 Mapping is defined in `default.project.json`.

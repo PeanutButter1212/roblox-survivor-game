@@ -18,6 +18,10 @@ local NAMES = {
 	"UpgradeSkill",
 	-- server -> client: a daily login bonus was granted. Carries { day, reward }.
 	"DailyBonus",
+	-- server -> client: the player clicked the lobby stage-select board; open the picker.
+	"OpenStageSelect",
+	-- client -> server: the player picked stage N to play next (clamped server-side).
+	"SelectStage",
 }
 
 local Remotes = {}
