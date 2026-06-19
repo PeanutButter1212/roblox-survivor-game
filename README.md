@@ -21,6 +21,14 @@ STAGE** / **NEXT STAGE ▶**) let you pick which stage the portal launches, clam
 anything you've cleared plus one. So you choose between grinding a beaten stage and pushing
 into the next one. Coins are spent in the lobby **skill tree** (below).
 
+**Skill tree:** a clickable **board in the spawn area** opens a panel with three permanent
+**character** buff paths — **Max Health**, **Move Speed**, **Damage** (these buff your
+character, not your weapons). Each path runs to **20 levels**; normal levels cost **100
+coins**, and every **5th** level (5/10/15/20) is a **⭐ super** upgrade that costs **500**
+and grants a much bigger buff. Purchases are validated on the server, persist with your
+save, and stack on top of the in-run level-up upgrades. Tune paths/costs in
+`data/Skills.luau`.
+
 **Multiplayer & stages:** each player gets their **own private arena** — when you touch
 the portal you're sent to a stage instance built far away in the same server, so players
 never collide. Everyone progresses through **stages independently**; your highest cleared
@@ -45,9 +53,9 @@ Code is organised into small, documented OOP classes (one responsibility each).
 
 | Folder        | Syncs into Studio at          | What's there                                            |
 | ------------- | ----------------------------- | ------------------------------------------------------- |
-| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CombatService, ProgressionService, PlayerProfile, LevelManager, DataService |
-| `src/client`  | StarterPlayerScripts > Client | Controllers: CameraController, HudController, UpgradeSpinController |
-| `src/shared`  | ReplicatedStorage > Shared    | `GameConfig`, `Remotes`, `util/` (Class, RandomUtil), `data/` (Rarities, Weapons, Upgrades) |
+| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CombatService, ProgressionService, PlayerProfile, LevelManager, DataService, SkillTreeService |
+| `src/client`  | StarterPlayerScripts > Client | Controllers: CameraController, HudController, UpgradeSpinController, SkillTreeController |
+| `src/shared`  | ReplicatedStorage > Shared    | `GameConfig`, `Remotes`, `util/` (Class, RandomUtil), `data/` (Rarities, Weapons, Upgrades, Skills) |
 
 Mapping is defined in `default.project.json`.
 

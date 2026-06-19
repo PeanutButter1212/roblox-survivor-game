@@ -12,6 +12,10 @@ local NAMES = {
 	"OfferUpgrades",
 	-- client -> server: the player chose option N (1-based) from the current offer.
 	"ChooseUpgrade",
+	-- server -> client: the player clicked the lobby skill-tree board; open the panel.
+	"OpenSkillTree",
+	-- client -> server: the player wants to buy the next level of skill path <id>.
+	"UpgradeSkill",
 }
 
 local Remotes = {}

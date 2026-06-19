@@ -16,12 +16,14 @@ local CombatService = require(script:WaitForChild("CombatService"))
 local StageService = require(script:WaitForChild("StageService"))
 local LevelManager = require(script:WaitForChild("LevelManager"))
 local DataService = require(script:WaitForChild("DataService"))
+local SkillTreeService = require(script:WaitForChild("SkillTreeService"))
 
 local progression = ProgressionService.new()
 local combat = CombatService.new()
 local stageService = StageService.new(progression, combat)
 local _level = LevelManager.new(progression, stageService)
 local dataService = DataService.new(progression)
+local _skillTree = SkillTreeService.new(progression)
 
 -- A joining player gets a profile, then their saved progression loaded over it.
 local function onPlayerAdded(player: Player)

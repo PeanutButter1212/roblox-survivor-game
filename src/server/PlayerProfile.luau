@@ -37,6 +37,7 @@ function PlayerProfile.new(player: Player)
 	self.stage = 1 -- the stage the portal will launch (player-selected; persisted)
 	self.coins = 0 -- soft currency earned by clearing stages (persisted)
 	self.maxStageCleared = 0 -- highest stage number ever cleared; gates stage selection
+	self.skills = { health = 0, speed = 0, damage = 0 } -- lobby skill-tree levels (persisted)
 	-- Level-up upgrade flow state (managed by ProgressionService): how many level-ups
 	-- are waiting, and the 3 options currently being shown (nil when none).
 	self.levelUpQueue = 0
@@ -46,6 +47,9 @@ function PlayerProfile.new(player: Player)
 	player:SetAttribute("Stage", self.stage)
 	player:SetAttribute("MaxStage", self.maxStageCleared)
 	player:SetAttribute("Coins", self.coins)
+	for pathId, level in self.skills do
+		player:SetAttribute("Skill_" .. pathId, level)
+	end
 	return self
 end
 
@@ -199,6 +203,19 @@ function PlayerProfile:spendCoins(amount: number): boolean
 	return true
 end
 
+-- The player's current level in a skill-tree path (0 if untouched/unknown).
+function PlayerProfile:getSkillLevel(pathId: string): number
+	return self.skills[pathId] or 0
+end
+
+-- Raises a skill path by one level and replicates it. The stat buff itself is applied
+-- separately by the purchaser (SkillTreeService) so the rules live with the skill data;
+-- this just tracks the level for cost/UI and so it can be saved.
+function PlayerProfile:incrementSkill(pathId: string)
+	self.skills[pathId] = (self.skills[pathId] or 0) + 1
+	self.player:SetAttribute("Skill_" .. pathId, self.skills[pathId])
+end
+
 -- Toggles invulnerability by adding/removing a ForceField on the character. Roblox's
 -- Humanoid:TakeDamage is a no-op while a ForceField is present, so this safely shields
 -- a player while they pick an upgrade without freezing the rest of the game.
@@ -225,6 +242,10 @@ function PlayerProfile:serialize(): any
 	for _, owned in self.weapons do
 		table.insert(weapons, { id = owned.id, power = owned.power })
 	end
+	local skills = {}
+	for pathId, level in self.skills do
+		skills[pathId] = level
+	end
 	return {
 		level = self.level,
 		xp = self.xp,
@@ -232,6 +253,7 @@ function PlayerProfile:serialize(): any
 		stage = self.stage,
 		coins = self.coins,
 		maxStageCleared = self.maxStageCleared,
+		skills = skills,
 		stats = {
 			damageMult = self.stats.damageMult,
 			fireRateMult = self.stats.fireRateMult,
@@ -256,6 +278,15 @@ function PlayerProfile:load(data: any)
 	self.player:SetAttribute("Stage", self.stage)
 	self.player:SetAttribute("MaxStage", self.maxStageCleared)
 	self.player:SetAttribute("Coins", self.coins)
+	-- Skill levels are restored only as counters: their stat buffs were already baked
+	-- into `stats` when purchased (and are restored with it below), so re-applying here
+	-- would double-count.
+	if type(data.skills) == "table" then
+		for pathId, level in data.skills do
+			self.skills[pathId] = level
+			self.player:SetAttribute("Skill_" .. pathId, level)
+		end
+	end
 	if type(data.stats) == "table" then
 		for key, value in data.stats do
 			self.stats[key] = value

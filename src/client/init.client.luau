@@ -10,7 +10,9 @@ local player = Players.LocalPlayer
 local CameraController = require(script:WaitForChild("CameraController"))
 local HudController = require(script:WaitForChild("HudController"))
 local UpgradeSpinController = require(script:WaitForChild("UpgradeSpinController"))
+local SkillTreeController = require(script:WaitForChild("SkillTreeController"))
 
 CameraController.new(player)
 HudController.new(player)
 UpgradeSpinController.new(player)
+SkillTreeController.new(player)
