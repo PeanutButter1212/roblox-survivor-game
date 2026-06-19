@@ -54,6 +54,7 @@ function HudController.new(player: Player)
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	self:buildStageLabel(gui)
+	self:buildCoins(gui)
 	self:buildTimer(gui)
 	self:buildXp(gui)
 	self:buildHealth(gui)
@@ -61,6 +62,7 @@ function HudController.new(player: Player)
 	self:hookProgression()
 	self:hookHealth()
 	self:hookStage()
+	self:hookCoins()
 	return self
 end
 
@@ -78,6 +80,22 @@ function HudController:buildStageLabel(gui: ScreenGui)
 	label.Parent = gui
 	round(label, 8)
 	self.stageLabel = label
+end
+
+-- Builds the coin balance readout just under the stage label (top-left).
+function HudController:buildCoins(gui: ScreenGui)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromOffset(140, 28)
+	label.Position = UDim2.new(0, 16, 0, 52)
+	label.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
+	label.BackgroundTransparency = 0.2
+	label.Font = Enum.Font.GothamBold
+	label.TextSize = 15
+	label.TextColor3 = Color3.fromRGB(255, 215, 90)
+	label.Text = "🪙 0"
+	label.Parent = gui
+	round(label, 8)
+	self.coinLabel = label
 end
 
 -- Builds the XP bar + level readout in the top-right.
@@ -228,7 +246,10 @@ function HudController:hookStage()
 		local phase = player:GetAttribute("StagePhase")
 		if phase == "Cleared" then
 			self.banner.TextColor3 = Color3.fromRGB(120, 255, 150)
-			self.banner.Text = "STAGE CLEARED!"
+			local reward = player:GetAttribute("LastReward") or 0
+			local first = player:GetAttribute("LastRewardFirst")
+			local suffix = if first then "" else " (replay)"
+			self.banner.Text = string.format("STAGE CLEARED!  +%d 🪙%s", reward, suffix)
 		elseif phase == "Failed" then
 			self.banner.TextColor3 = Color3.fromRGB(255, 110, 110)
 			self.banner.Text = "STAGE FAILED"
@@ -245,6 +266,16 @@ function HudController:hookStage()
 	player:GetAttributeChangedSignal("StageActive"):Connect(refresh)
 	player:GetAttributeChangedSignal("StageTimeLeft"):Connect(refresh)
 	player:GetAttributeChangedSignal("StagePhase"):Connect(onPhase)
+	refresh()
+end
+
+-- Keeps the coin readout in sync with the replicated "Coins" attribute.
+function HudController:hookCoins()
+	local function refresh()
+		local coins = self.player:GetAttribute("Coins") or 0
+		self.coinLabel.Text = "🪙 " .. tostring(coins)
+	end
+	self.player:GetAttributeChangedSignal("Coins"):Connect(refresh)
 	refresh()
 end
 

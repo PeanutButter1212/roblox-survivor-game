@@ -121,7 +121,16 @@ function StageInstance:finish(result: string)
 	self.player:SetAttribute("StagePhase", result)
 
 	if result == "Cleared" then
-		self.profile:advanceStage()
+		-- A first-ever clear of this stage pays full coins and raises the cleared
+		-- ceiling; re-clearing a stage already beaten pays the reduced replay rate.
+		local isFirstClear = self.config.number > self.profile:getMaxStageCleared()
+		local reward = GameConfig.coinReward(self.config.number, isFirstClear)
+		self.profile:addCoins(reward)
+		self.profile:recordStageCleared(self.config.number)
+		-- Surface the payout to the HUD banner (no auto-advance: the player stays on
+		-- this stage so they can re-enter to farm, or use the lobby pads to move on).
+		self.player:SetAttribute("LastReward", reward)
+		self.player:SetAttribute("LastRewardFirst", isFirstClear)
 	end
 
 	self:teleportTo(GameConfig.World.LobbyCenter + Vector3.new(0, 5, 0))

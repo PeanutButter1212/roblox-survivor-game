@@ -21,9 +21,11 @@ function LevelManager.new(progression: any, stageService: any)
 	self.progression = progression
 	self.stageService = stageService
 	self.touchDebounce = {} :: { [Player]: number }
+	self.stageChangeDebounce = {} :: { [Player]: number }
 
 	self:buildLobby()
 	self:buildPortal()
+	self:buildStageControls()
 
 	-- Safety net: make sure players physically start in the lobby on (re)spawn, even
 	-- if the SpawnLocation isn't ready the instant the first character loads.
@@ -133,6 +135,71 @@ function LevelManager:buildPortal()
 			self:enterLevel(player)
 		end
 	end)
+end
+
+-- Builds the two lobby pads that let a player pick which stage the portal launches:
+-- one steps the selection down, the other up. Selection is clamped server-side to what
+-- the player has unlocked, so these are how you choose between farming a beaten stage
+-- and advancing to the next one.
+function LevelManager:buildStageControls()
+	local center = GameConfig.World.LobbyCenter
+	-- Flank the portal (which sits toward -Z of the lobby) on either side.
+	self:makeStagePad("PrevStagePad", -1, center + Vector3.new(-16, 1, -24), "◀ PREV STAGE", Color3.fromRGB(80, 120, 200))
+	self:makeStagePad("NextStagePad", 1, center + Vector3.new(16, 1, -24), "NEXT STAGE ▶", Color3.fromRGB(90, 200, 120))
+end
+
+-- Creates one stage-control pad: a flat neon pad with a floating label that, when
+-- touched, shifts the toucher's selected stage by `delta` (clamped in the profile).
+function LevelManager:makeStagePad(name: string, delta: number, position: Vector3, text: string, color: Color3)
+	local pad = Instance.new("Part")
+	pad.Name = name
+	pad.Anchored = true
+	pad.Size = Vector3.new(10, 1, 8)
+	pad.Position = position
+	pad.Material = Enum.Material.Neon
+	pad.Color = color
+	pad.Transparency = 0.2
+	pad.Parent = Workspace
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.fromOffset(150, 40)
+	billboard.StudsOffset = Vector3.new(0, 3, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = pad
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamBold
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.Text = text
+	label.Parent = billboard
+
+	pad.Touched:Connect(function(hit)
+		local character = hit.Parent
+		local player = character and Players:GetPlayerFromCharacter(character)
+		if player then
+			self:changeStage(player, delta)
+		end
+	end)
+end
+
+-- Shifts a player's selected stage by `delta`, debounced so a single step doesn't fire
+-- repeatedly while they stand on the pad. Ignored while the player is mid-run.
+function LevelManager:changeStage(player: Player, delta: number)
+	local now = os.clock()
+	local last = self.stageChangeDebounce[player]
+	if last and now - last < 0.6 then
+		return
+	end
+	self.stageChangeDebounce[player] = now
+
+	local profile = self.progression:getProfile(player)
+	if not profile or profile.inLevel then
+		return
+	end
+	profile:setStage(profile:getStage() + delta)
 end
 
 -- Starts the player's current stage in their own private arena. The StageInstance

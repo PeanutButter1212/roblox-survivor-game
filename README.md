@@ -13,11 +13,18 @@ each spins to an upgrade of some **rarity** (Rare → Super Rare → Epic → Le
 and you return to the lobby; walk back through the portal to retry. Health, XP, and the
 timer are on the HUD.
 
+**Coins & farming:** clearing a stage pays **coins** (shown on the HUD). Your **first**
+clear of a given stage pays full; **replaying** an already-beaten stage pays a reduced
+rate (`GameConfig.Coins.ReplayFactor`), so you can farm a familiar stage over and over for
+a steady trickle. Clearing no longer auto-advances you — instead two lobby pads (**◀ PREV
+STAGE** / **NEXT STAGE ▶**) let you pick which stage the portal launches, clamped to
+anything you've cleared plus one. So you choose between grinding a beaten stage and pushing
+into the next one. Coins are spent in the lobby **skill tree** (below).
+
 **Multiplayer & stages:** each player gets their **own private arena** — when you touch
 the portal you're sent to a stage instance built far away in the same server, so players
-never collide. Everyone progresses through **stages independently**: clear a stage (a
-per-stage survival timer) and your stage counter advances, so the next time you enter the
-portal you play the next, harder stage. Stages scale forever (see `data/Stages.luau`).
+never collide. Everyone progresses through **stages independently**; your highest cleared
+stage is saved, and the PREV/NEXT pads only unlock up to it. Stages scale forever (see `data/Stages.luau`).
 Level-ups are per-player (only you see your picker; a shield keeps you safe while
 choosing). Progress (stage, level, unlocked weapons) is saved per player with Roblox
 DataStores. Roblox hosts all of this — no external backend.
@@ -27,7 +34,7 @@ DataStores. Roblox hosts all of this — no external backend.
 - Touch the portal to start. On level-up, click one of the three spun upgrades.
 
 ### Where to tune things
-- `src/shared/GameConfig.luau` — world/arena layout, round length, difficulty ramp, enemy & XP numbers.
+- `src/shared/GameConfig.luau` — world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards** (`GameConfig.Coins`).
 - `src/shared/data/Rarities.luau` — rarity odds, power multipliers, colors.
 - `src/shared/data/Weapons.luau` — weapon stats (add a gun = add a row).
 - `src/shared/data/Upgrades.luau` — upgrade archetypes (add an upgrade = add a row).

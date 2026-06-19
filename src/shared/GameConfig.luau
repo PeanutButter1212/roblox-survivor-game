@@ -38,4 +38,23 @@ GameConfig.Progression = {
 	UpgradeOptions = 3, -- how many choices the slot machine offers per level
 }
 
+-- Coin economy. Coins are the soft currency earned by clearing stages and spent in the
+-- lobby skill tree. First clears pay full; replaying a beaten stage pays a fraction, so
+-- grinding a familiar stage is viable but slower than pushing into fresh ones.
+GameConfig.Coins = {
+	FirstClearBase = 40, -- coins for a first-time clear of stage 1
+	PerStageBonus = 20, -- extra first-clear coins per stage number beyond the first
+	ReplayFactor = 0.3, -- replays of an already-cleared stage pay this fraction
+}
+
+-- Coins awarded for clearing `stageNumber`. `isFirstClear` pays the full amount (which
+-- grows with the stage), while replays are scaled down by ReplayFactor.
+function GameConfig.coinReward(stageNumber: number, isFirstClear: boolean): number
+	local full = GameConfig.Coins.FirstClearBase + (stageNumber - 1) * GameConfig.Coins.PerStageBonus
+	if isFirstClear then
+		return full
+	end
+	return math.floor(full * GameConfig.Coins.ReplayFactor)
+end
+
 return GameConfig

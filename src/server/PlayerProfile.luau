@@ -34,7 +34,9 @@ function PlayerProfile.new(player: Player)
 	self.fireTimers = {} :: { [string]: number }
 	self.inLevel = false
 	self.invulnerable = false
-	self.stage = 1 -- the stage this player will play next (persisted)
+	self.stage = 1 -- the stage the portal will launch (player-selected; persisted)
+	self.coins = 0 -- soft currency earned by clearing stages (persisted)
+	self.maxStageCleared = 0 -- highest stage number ever cleared; gates stage selection
 	-- Level-up upgrade flow state (managed by ProgressionService): how many level-ups
 	-- are waiting, and the 3 options currently being shown (nil when none).
 	self.levelUpQueue = 0
@@ -42,6 +44,8 @@ function PlayerProfile.new(player: Player)
 	self:syncAttributes()
 	player:SetAttribute("InLevel", false)
 	player:SetAttribute("Stage", self.stage)
+	player:SetAttribute("MaxStage", self.maxStageCleared)
+	player:SetAttribute("Coins", self.coins)
 	return self
 end
 
@@ -145,15 +149,54 @@ function PlayerProfile:setInLevel(value: boolean)
 	self.player:SetAttribute("InLevel", value)
 end
 
--- The stage this player will play next.
+-- The stage the portal will currently launch.
 function PlayerProfile:getStage(): number
 	return self.stage
 end
 
--- Advances to the next stage (called after clearing one) and replicates it.
-function PlayerProfile:advanceStage()
-	self.stage += 1
+-- Selects which stage the portal launches, clamped to [1, highest cleared + 1] so a
+-- player can replay anything they've beaten (to farm coins) and step one stage past it
+-- into new content, but never skip ahead. Replicates the choice for the HUD.
+function PlayerProfile:setStage(stageNumber: number)
+	local maxSelectable = self.maxStageCleared + 1
+	self.stage = math.clamp(stageNumber, 1, maxSelectable)
 	self.player:SetAttribute("Stage", self.stage)
+end
+
+-- The highest stage number this player has ever cleared.
+function PlayerProfile:getMaxStageCleared(): number
+	return self.maxStageCleared
+end
+
+-- Records a stage clear, raising the cleared ceiling (and unlocking the next stage for
+-- selection) only when this is a new best. Replicated so the lobby pads/HUD can react.
+function PlayerProfile:recordStageCleared(stageNumber: number)
+	if stageNumber > self.maxStageCleared then
+		self.maxStageCleared = stageNumber
+		self.player:SetAttribute("MaxStage", self.maxStageCleared)
+	end
+end
+
+-- The player's current coin balance.
+function PlayerProfile:getCoins(): number
+	return self.coins
+end
+
+-- Grants coins and replicates the new balance to the HUD.
+function PlayerProfile:addCoins(amount: number)
+	self.coins += amount
+	self.player:SetAttribute("Coins", self.coins)
+end
+
+-- Tries to spend `amount` coins. Returns true (and deducts) if affordable, else false
+-- and leaves the balance untouched. Callers use the result to gate purchases.
+function PlayerProfile:spendCoins(amount: number): boolean
+	if self.coins < amount then
+		return false
+	end
+	self.coins -= amount
+	self.player:SetAttribute("Coins", self.coins)
+	return true
 end
 
 -- Toggles invulnerability by adding/removing a ForceField on the character. Roblox's
@@ -187,6 +230,8 @@ function PlayerProfile:serialize(): any
 		xp = self.xp,
 		xpToNext = self.xpToNext,
 		stage = self.stage,
+		coins = self.coins,
+		maxStageCleared = self.maxStageCleared,
 		stats = {
 			damageMult = self.stats.damageMult,
 			fireRateMult = self.stats.fireRateMult,
@@ -206,7 +251,11 @@ function PlayerProfile:load(data: any)
 	self.xp = data.xp or self.xp
 	self.xpToNext = data.xpToNext or xpForLevel(self.level)
 	self.stage = data.stage or self.stage
+	self.coins = data.coins or self.coins
+	self.maxStageCleared = data.maxStageCleared or self.maxStageCleared
 	self.player:SetAttribute("Stage", self.stage)
+	self.player:SetAttribute("MaxStage", self.maxStageCleared)
+	self.player:SetAttribute("Coins", self.coins)
 	if type(data.stats) == "table" then
 		for key, value in data.stats do
 			self.stats[key] = value
