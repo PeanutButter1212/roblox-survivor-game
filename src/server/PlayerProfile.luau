@@ -234,6 +234,13 @@ function PlayerProfile:recordDailyClaim(day: number, streak: number)
 	self.dailyStreak = streak
 end
 
+-- Whether the player is currently mid upgrade-pick (a level-up offer is on screen).
+-- The stage instance reads this to freeze the run — enemies, combat, and the timer all
+-- pause — while the player chooses, instead of merely shielding them.
+function PlayerProfile:isChoosingUpgrade(): boolean
+	return self.currentOptions ~= nil
+end
+
 -- Toggles invulnerability by adding/removing a ForceField on the character. Roblox's
 -- Humanoid:TakeDamage is a no-op while a ForceField is present, so this safely shields
 -- a player while they pick an upgrade without freezing the rest of the game.

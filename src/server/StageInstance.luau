@@ -84,6 +84,13 @@ function StageInstance:update(dt: number)
 		return
 	end
 
+	-- Freeze the whole run while the player is picking a level-up upgrade: the timer
+	-- holds and enemies/combat don't advance, so the swarm can't move or hit them
+	-- mid-choice. (They're also shielded, but this makes it a true pause.)
+	if self.profile:isChoosingUpgrade() then
+		return
+	end
+
 	self.elapsed += dt
 	self.timeLeft -= dt
 
