@@ -26,9 +26,22 @@ export type Piece = {
 -- A scatterable decoration: a few pieces, dropped at a random spot and yaw.
 export type Prop = { id: string, weight: number, pieces: { Piece } }
 
+-- Lighting mood for a theme. Applied client-side (see client/AtmosphereController): each
+-- player is in their own arena, and Lighting is one shared instance, so the server can't
+-- set this per-stage without changing it for everyone.
+export type Mood = {
+	clockTime: number,
+	ambient: Color3,
+	outdoorAmbient: Color3,
+	fogColor: Color3,
+	fogEnd: number,
+	brightness: number,
+}
+
 export type ArenaTheme = {
 	id: string,
 	name: string,
+	mood: Mood,
 	floorColor: Color3,
 	floorMaterial: Enum.Material,
 	wallColor: Color3,
@@ -44,6 +57,14 @@ local Arenas = {}
 Arenas.List = {
 	{
 		id = "woods",
+		mood = {
+			clockTime = 14,
+			ambient = C(60, 70, 55),
+			outdoorAmbient = C(105, 120, 95),
+			fogColor = C(140, 165, 130),
+			fogEnd = 520,
+			brightness = 2.2,
+		},
 		name = "Sahur Woods",
 		floorColor = C(72, 104, 62),
 		floorMaterial = Enum.Material.Grass,
@@ -110,6 +131,14 @@ Arenas.List = {
 	},
 	{
 		id = "shore",
+		mood = {
+			clockTime = 13,
+			ambient = C(90, 95, 100),
+			outdoorAmbient = C(150, 155, 160),
+			fogColor = C(200, 215, 230),
+			fogEnd = 720,
+			brightness = 3.0,
+		},
 		name = "Tralalero Shore",
 		floorColor = C(224, 202, 152),
 		floorMaterial = Enum.Material.Sand,
@@ -173,6 +202,14 @@ Arenas.List = {
 	},
 	{
 		id = "freezer",
+		mood = {
+			clockTime = 8,
+			ambient = C(70, 85, 100),
+			outdoorAmbient = C(120, 145, 170),
+			fogColor = C(180, 205, 225),
+			fogEnd = 420,
+			brightness = 1.8,
+		},
 		name = "Frigo Freezer",
 		floorColor = C(196, 220, 236),
 		floorMaterial = Enum.Material.Ice,
@@ -228,6 +265,14 @@ Arenas.List = {
 	},
 	{
 		id = "airfield",
+		mood = {
+			clockTime = 18,
+			ambient = C(60, 58, 62),
+			outdoorAmbient = C(95, 92, 100),
+			fogColor = C(110, 105, 115),
+			fogEnd = 360,
+			brightness = 1.6,
+		},
 		name = "Bombardiro Airfield",
 		floorColor = C(58, 60, 66),
 		floorMaterial = Enum.Material.Asphalt,
@@ -288,6 +333,14 @@ Arenas.List = {
 	},
 	{
 		id = "orchard",
+		mood = {
+			clockTime = 15,
+			ambient = C(70, 80, 60),
+			outdoorAmbient = C(120, 135, 100),
+			fogColor = C(170, 190, 150),
+			fogEnd = 620,
+			brightness = 2.4,
+		},
 		name = "Glorbo Orchard",
 		floorColor = C(94, 138, 70),
 		floorMaterial = Enum.Material.LeafyGrass,
@@ -357,6 +410,14 @@ Arenas.List = {
 	},
 	{
 		id = "cafe",
+		mood = {
+			clockTime = 20,
+			ambient = C(75, 65, 58),
+			outdoorAmbient = C(105, 90, 80),
+			fogColor = C(90, 75, 68),
+			fogEnd = 300,
+			brightness = 1.4,
+		},
 		name = "Cappuccino Cafe",
 		floorColor = C(226, 216, 200),
 		floorMaterial = Enum.Material.Marble,

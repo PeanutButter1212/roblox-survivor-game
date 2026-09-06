@@ -11,6 +11,19 @@ GameConfig.World = {
 	LobbyCenter = Vector3.new(0, 0, 360),
 	PortalPosition = Vector3.new(0, 5, 330), -- on the lobby platform, facing the arena
 	ArenaSpawnOffset = Vector3.new(0, 8, 0), -- where a player lands relative to their arena's origin
+	LobbySize = 90, -- the lobby floor is this many studs square
+	LobbyWallHeight = 24,
+}
+
+-- The lobby's own surfaces. Arenas get theirs from data/Arenas themes; the lobby is one
+-- fixed room, so its palette lives here.
+GameConfig.Lobby = {
+	FloorColor = Color3.fromRGB(48, 52, 66),
+	InlayColor = Color3.fromRGB(64, 70, 90),
+	WallColor = Color3.fromRGB(38, 41, 54),
+	TrimColor = Color3.fromRGB(120, 200, 255),
+	PortalColor = Color3.fromRGB(150, 90, 255),
+	FrameColor = Color3.fromRGB(58, 62, 80),
 }
 
 -- Arena appearance/bounds shared by every stage (the size itself is per-stage).

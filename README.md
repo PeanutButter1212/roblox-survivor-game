@@ -22,6 +22,18 @@ Cappuccino Assassino and Bombombini Gusini as you climb. Fast glass cannons, slo
 and elites with floating nametags. Early fodder thins out as the heavies come online, so
 stage 12 isn't still mostly Sahurs. One row in `data/Enemies.luau` per brainrot.
 
+**The lobby:** a walled room rather than a slab in the void — inlaid floor, a glowing
+spawn ring, and lit corner pillars. The portal is an arch with a ring turning inside it,
+and the two stations (SELECT STAGE, SKILL TREE) are framed and lit in their own colours so
+you can tell them apart. Along the back wall is a **brainrot hall**: one pedestal per
+enemy in the bestiary, showing its actual body at half scale with its name. It's built
+from `data/Enemies.luau`, so a new brainrot appears on display for free.
+
+**Lighting:** the lobby has its own preset, and each stage cross-fades to its theme's mood
+— the freezer is cold and dim, the cafe is late-evening amber, the shore is bright. This
+runs on the client: `Lighting` is one shared instance, so a server-side change would drag
+every player into one player's weather.
+
 **The maps:** every stage is played on one of six themes — Sahur Woods, Tralalero Shore,
 Frigo Freezer, Bombardiro Airfield, Glorbo Orchard, Cappuccino Cafe — each with its own
 floor and wall surfaces, accent trim and scattered props (stumps, palms, ice shards,
@@ -69,7 +81,8 @@ DataStores. Roblox hosts all of this — no external backend.
   board** to spend coins on permanent character buffs.
 
 ### Where to tune things
-- `src/shared/GameConfig.luau` — world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards and kill drops** (`GameConfig.Coins`).
+- `src/shared/GameConfig.luau` — world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards and kill drops** (`GameConfig.Coins`), **lobby size and palette** (`GameConfig.World` / `GameConfig.Lobby`).
+- `src/shared/data/Arenas.luau` — also carries each theme's `mood` (the Lighting preset used while you're on that stage).
 - `src/shared/data/Enemies.luau` — the brainrot bestiary: stats, spawn odds, unlock stage, and each one's body (add a brainrot = add a row).
 - `src/shared/data/Arenas.luau` — map themes: surfaces, trim, props (add a map = add a row).
 - `src/shared/data/Stages.luau` — per-stage size, duration, enemy stats and which theme it uses.
@@ -83,8 +96,8 @@ Code is organised into small, documented OOP classes (one responsibility each).
 
 | Folder        | Syncs into Studio at          | What's there                                            |
 | ------------- | ----------------------------- | ------------------------------------------------------- |
-| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CoinManager, CombatService, ProgressionService, PlayerProfile, LevelManager, DataService, SkillTreeService, DailyRewardService |
-| `src/client`  | StarterPlayerScripts > Client | Controllers: CameraController, HudController, UpgradeSpinController, SkillTreeController, DailyBonusController, StageSelectController; plus `Icons` (UI icons drawn from Frames) |
+| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CoinManager, CombatService, ProgressionService, PlayerProfile, LevelManager, LobbyDecor, LobbyGallery, DataService, SkillTreeService, DailyRewardService |
+| `src/client`  | StarterPlayerScripts > Client | Controllers: AtmosphereController, CameraController, HudController, UpgradeSpinController, SkillTreeController, DailyBonusController, StageSelectController; plus `Icons` (UI icons drawn from Frames) |
 | `src/shared`  | ReplicatedStorage > Shared    | `GameConfig`, `Remotes`, `util/` (Class, RandomUtil), `data/` (Rarities, Weapons, Upgrades, Skills, Stages, Enemies, Arenas) |
 
 Mapping is defined in `default.project.json`.

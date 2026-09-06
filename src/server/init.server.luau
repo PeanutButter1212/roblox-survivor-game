@@ -18,14 +18,16 @@ local LevelManager = require(script:WaitForChild("LevelManager"))
 local DataService = require(script:WaitForChild("DataService"))
 local SkillTreeService = require(script:WaitForChild("SkillTreeService"))
 local DailyRewardService = require(script:WaitForChild("DailyRewardService"))
+local LobbyGallery = require(script:WaitForChild("LobbyGallery"))
 
 local progression = ProgressionService.new()
 local combat = CombatService.new()
 local stageService = StageService.new(progression, combat)
-local _level = LevelManager.new(progression, stageService)
+local level = LevelManager.new(progression, stageService)
 local dataService = DataService.new(progression)
 local _skillTree = SkillTreeService.new(progression)
 local dailyReward = DailyRewardService.new(progression)
+local _gallery = LobbyGallery.new() -- the brainrot hall along the back of the lobby
 
 -- A joining player gets a profile, their saved progression loaded over it, then their
 -- daily login bonus evaluated (granted once per day, growing with their streak).
@@ -59,9 +61,11 @@ Remotes.get("ChooseUpgrade").OnServerEvent:Connect(function(player, index)
 	end
 end)
 
--- One shared loop drives every player's private stage instance.
+-- One shared loop drives every player's private stage instance, plus the lobby's moving
+-- decor. Nothing else in the codebase may open a RunService loop.
 RunService.Heartbeat:Connect(function(dt)
 	stageService:update(dt)
+	level:update(dt)
 end)
 
 print("[Server] Lobby ready. Each player gets their own arena and stage progression.")

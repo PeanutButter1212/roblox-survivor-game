@@ -34,7 +34,9 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 | `CombatService` | Stateless. Fires one player's auto-weapons at enemies in their own instance. |
 | `ProgressionService` | Registry of PlayerProfiles + level-up/upgrade logic. Queues picks, freezes the run, applies the choice, unfreezes. |
 | `PlayerProfile` | One player's progression: XP, level, stat multipliers, owned weapons, lobby/level flag, skill levels, coins. |
-| `LevelManager` | Builds the lobby platform and the portal. Touching the portal starts a run. |
+| `LevelManager` | Builds the lobby room (floor, walls, spawn dais), the portal arch and the stage-select station. Touching the portal starts a run. Exposes `update(dt)` for the portal swirl. |
+| `LobbyDecor` | Shared builders for lobby furniture: anchored parts, and the frame/plinth/light that turns a bare interaction slab into a station. |
+| `LobbyGallery` | The brainrot hall along the back of the lobby — one pedestal per `data/Enemies` row, built from the same bodies at half scale. |
 | `SkillTreeService` | The lobby skill-tree board; **validates every purchase server-side**. |
 | `DailyRewardService` | Once-per-UTC-day login bonus, streak-scaled. Call `grantIfDue` after the save loads. |
 | `DataService` | DataStore save/load + autosave + `BindToClose`. |
@@ -44,6 +46,7 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 `InLevel` attribute) · `HudController` (health, XP, level, timer, coins) ·
 `UpgradeSpinController` (the three reels) · `SkillTreeController` (the visual node tree) ·
 `StageSelectController` (picker + portal door display) · `DailyBonusController` (toast) ·
+`AtmosphereController` (Lighting: lobby preset + each stage's mood) ·
 `Icons` (UI icons drawn from Frames — nothing here can upload an image asset).
 
 ### `src/shared` → ReplicatedStorage.Shared
@@ -70,6 +73,11 @@ Instance mapping lives in `default.project.json`.
   props in `data/Arenas` are authored the same way.
 - **Arena props never collide.** Enemies chase in a straight line, so anything solid to
   the player but not to the swarm reads as a bug. Decoration only.
+- **Lighting is client-side.** `Lighting` is one shared instance but every player is on
+  their own stage, so a server-side change drags everyone into one player's weather. Stage
+  moods live on the theme (`data/Arenas`) and are applied by `AtmosphereController`.
+- **The lobby is one fixed room.** It's shared, so it can't take a per-player theme the way
+  an arena does. Its palette and dimensions are `GameConfig.Lobby` / `GameConfig.World`.
 - **One Heartbeat loop**, in `init.server.luau`. Do not add `RunService` loops elsewhere;
   have the owning service expose `update(dt)` and call it from there.
 - **Server is authoritative.** Anything a client asks for over a RemoteEvent (upgrade
