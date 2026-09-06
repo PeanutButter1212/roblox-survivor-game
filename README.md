@@ -50,8 +50,12 @@ your choice shows on the portal "door" (**▶ STAGE N**) before you touch it to 
 choose between grinding a beaten stage and pushing into the next one. Coins are spent in the
 lobby **skill tree** (below).
 
-**Pets:** a **PET EGGS** stand in the lobby opens the shop. Three eggs (Cracked, Golden,
-Cosmic) each roll one of eight companion brainrots — Frulli Frulla, Talpa Di Ferro,
+**Pets:** three **egg pedestals** line one wall of the lobby, each holding that egg's
+actual model — bobbing, turning and lit in its own colour — with its name and coin price
+floating above. Click one to open the shop on that egg. Hatching bursts a ring of the
+pet's rarity colour around you, and each pet carries a matching glow so a Legendary is
+obvious in a dim arena. The three eggs (Cracked, Golden, Cosmic)
+each roll one of eight companion brainrots — Frulli Frulla, Talpa Di Ferro,
 Orangutini Ananassini, Tigrilini Watermelini, Svinina Bombardino, La Vacca Saturnita,
 Graipuss Medussi, Garama Mandandanam. Up to **three pets follow you at once**, orbiting
 your character and auto-attacking whatever's nearest — a second gun that scales with your
@@ -60,7 +64,8 @@ Damage skill. Every egg shows its **full drop table** in the shop.
 Eggs can be opened with **coins** (works immediately) or with **Robux** (needs setup, see
 below). The roll always happens on the server: the client asks to open an egg, never says
 what it got. Add a pet with a row in `data/Pets.luau` and an entry in an egg's pool in
-`data/Eggs.luau`.
+`data/Eggs.luau` — including its body, so it gets its own pedestal in the lobby
+automatically.
 
 **Skill tree:** a clickable **board in the spawn area** opens a visual tree with three
 permanent **character** buff branches — **Max Health**, **Move Speed**, **Damage** (these

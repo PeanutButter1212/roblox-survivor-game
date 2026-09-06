@@ -22,7 +22,8 @@ local NAMES = {
 	"OpenStageSelect",
 	-- client -> server: the player picked stage N to play next (clamped server-side).
 	"SelectStage",
-	-- server -> client: the player clicked the lobby egg stand; open the pet shop.
+	-- server -> client: the player clicked an egg pedestal; open the pet shop. Carries the
+	-- clicked egg's id so the shop can highlight and scroll to it.
 	"OpenPetShop",
 	-- client -> server: the player wants to open egg <id> with coins. The server rolls it.
 	"HatchEgg",

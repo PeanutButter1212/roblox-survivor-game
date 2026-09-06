@@ -39,6 +39,7 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 | `LevelManager` | Builds the lobby room (floor, walls, spawn dais), the portal arch and the stage-select station. Touching the portal starts a run. Exposes `update(dt)` for the portal swirl. |
 | `LobbyDecor` | Shared builders for lobby furniture: anchored parts, and the frame/plinth/light that turns a bare interaction slab into a station. |
 | `LobbyGallery` | The brainrot hall along the back of the lobby — one pedestal per `data/Enemies` row, built from the same bodies at half scale. |
+| `EggStands` | The egg pedestals along the +X wall — one per `data/Eggs` row, carrying that egg's own body. Exposes `update(dt)` for the idle bob/spin. |
 | `SkillTreeService` | The lobby skill-tree board; **validates every purchase server-side**. |
 | `DailyRewardService` | Once-per-UTC-day login bonus, streak-scaled. Call `grantIfDue` after the save loads. |
 | `DataService` | DataStore save/load + autosave + `BindToClose`. |
@@ -80,6 +81,10 @@ Instance mapping lives in `default.project.json`.
 - **Lighting is client-side.** `Lighting` is one shared instance but every player is on
   their own stage, so a server-side change drags everyone into one player's weather. Stage
   moods live on the theme (`data/Arenas`) and are applied by `AtmosphereController`.
+- **Eggs and pets are bodies too.** Both carry a `body` piece list authored the same way
+  enemies and props are, so `EggStands` and the shop show the real thing rather than an
+  icon. Two stacked spheres make an egg on purpose — a single non-uniform `Ball` is at the
+  engine's mercy.
 - **Gacha odds are derived, never written.** `Eggs.odds` computes percentages from the
   same weights `Eggs.roll` uses, and the shop UI renders that. Roblox requires the odds of
   paid random items to be disclosed, so a second hand-maintained copy that could drift is

@@ -20,6 +20,7 @@ local SkillTreeService = require(script:WaitForChild("SkillTreeService"))
 local DailyRewardService = require(script:WaitForChild("DailyRewardService"))
 local LobbyGallery = require(script:WaitForChild("LobbyGallery"))
 local PetService = require(script:WaitForChild("PetService"))
+local EggStands = require(script:WaitForChild("EggStands"))
 
 local progression = ProgressionService.new()
 local combat = CombatService.new()
@@ -30,6 +31,7 @@ local level = LevelManager.new(progression, stageService)
 local _skillTree = SkillTreeService.new(progression)
 local dailyReward = DailyRewardService.new(progression)
 local _gallery = LobbyGallery.new() -- the brainrot hall along the back of the lobby
+local eggStands = EggStands.new() -- the egg pedestals along the +X wall
 
 -- A joining player gets a profile, their saved progression loaded over it, then their
 -- daily login bonus evaluated (granted once per day, growing with their streak).
@@ -72,6 +74,7 @@ RunService.Heartbeat:Connect(function(dt)
 	stageService:update(dt)
 	level:update(dt)
 	pets:update(dt)
+	eggStands:update(dt)
 end)
 
 print("[Server] Lobby ready. Each player gets their own arena and stage progression.")

@@ -37,6 +37,7 @@ function PetShopController.new(player: Player)
 	self.player = player
 	self.owned = {} :: { [string]: number }
 	self.equipped = {} :: { string }
+	self.cards = {} :: { [string]: any }
 
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "PetShop"
@@ -104,9 +105,25 @@ function PetShopController:buildEggColumn(panel: Frame)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = holder
 
+	self.eggScroller = holder
 	for index, egg in Eggs.List do
 		self:buildEggCard(holder, egg, index)
 	end
+end
+
+-- Scrolls the clicked egg into view and flashes its outline, so opening the shop from a
+-- pedestal lands on the egg you were standing at rather than the top of the list.
+function PetShopController:focusEgg(eggId: string?)
+	for _, entry in self.cards do
+		entry.stroke.Transparency = 0.4
+	end
+	local entry = if eggId then self.cards[eggId] else nil
+	if not entry then
+		return
+	end
+	entry.stroke.Transparency = 0
+	self.eggScroller.CanvasPosition =
+		Vector2.new(0, math.max(0, entry.card.AbsolutePosition.Y - self.eggScroller.AbsolutePosition.Y))
 end
 
 -- One egg: name, the two buy buttons, and its full drop table.
@@ -125,6 +142,7 @@ function PetShopController:buildEggCard(parent: Instance, egg: any, order: numbe
 	stroke.Color = egg.color
 	stroke.Transparency = 0.4
 	stroke.Parent = card
+	self.cards[egg.id] = { card = card, stroke = stroke }
 
 	local name = Instance.new("TextLabel")
 	name.Size = UDim2.new(1, -16, 0, 24)
@@ -310,8 +328,9 @@ end
 
 -- Subscribes to the stand and to pet-state pushes.
 function PetShopController:hook()
-	Remotes.get("OpenPetShop").OnClientEvent:Connect(function()
+	Remotes.get("OpenPetShop").OnClientEvent:Connect(function(eggId)
 		self.panel.Visible = true
+		self:focusEgg(if typeof(eggId) == "string" then eggId else nil)
 	end)
 
 	Remotes.get("PetsChanged").OnClientEvent:Connect(function(payload)

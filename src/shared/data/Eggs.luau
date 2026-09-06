@@ -14,6 +14,10 @@
 local Pets = require(script.Parent:WaitForChild("Pets"))
 local RandomUtil = require(script.Parent.Parent:WaitForChild("util"):WaitForChild("RandomUtil"))
 
+local C = Color3.fromRGB
+local BALL = Enum.PartType.Ball
+local CYL = Enum.PartType.Cylinder
+
 export type PoolEntry = { petId: string, weight: number }
 
 export type EggDef = {
@@ -23,6 +27,11 @@ export type EggDef = {
 	robuxPrice: number, -- display only; the real price lives on the product in Roblox
 	productId: number, -- 0 = not configured yet, so the Robux button stays disabled
 	color: Color3,
+	-- The egg's physical body, authored like every other model in the project (see
+	-- util/Piece): local space, y from the base. EggStands puts one on each lobby
+	-- pedestal. Two stacked spheres read as an egg whichever way the engine scales a
+	-- non-uniform Ball, which a single squashed sphere would not.
+	body: { any },
 	pool: { PoolEntry },
 }
 
@@ -35,7 +44,30 @@ Eggs.List = {
 		coinPrice = 250,
 		robuxPrice = 29,
 		productId = 0,
-		color = Color3.fromRGB(190, 200, 215),
+		color = C(190, 200, 215),
+		body = {
+			{ size = Vector3.new(2.8, 2.8, 2.8), at = Vector3.new(0, 1.4, 0), color = C(228, 230, 236), shape = BALL },
+			{ size = Vector3.new(2.0, 2.0, 2.0), at = Vector3.new(0, 2.7, 0), color = C(236, 238, 244), shape = BALL },
+			{
+				size = Vector3.new(0.5, 2.9, 2.9),
+				at = Vector3.new(0, 1.6, 0),
+				color = C(168, 176, 190),
+				shape = CYL,
+				rot = Vector3.new(0, 0, 90),
+			},
+			{
+				size = Vector3.new(0.55, 0.55, 0.55),
+				at = Vector3.new(0.9, 2.2, -0.7),
+				color = C(150, 158, 172),
+				shape = BALL,
+			},
+			{
+				size = Vector3.new(0.4, 0.4, 0.4),
+				at = Vector3.new(-0.8, 1.1, -0.9),
+				color = C(150, 158, 172),
+				shape = BALL,
+			},
+		},
 		pool = {
 			{ petId = "frulli_frulla", weight = 45 },
 			{ petId = "talpa_di_ferro", weight = 35 },
@@ -51,7 +83,37 @@ Eggs.List = {
 		coinPrice = 1200,
 		robuxPrice = 99,
 		productId = 0,
-		color = Color3.fromRGB(250, 205, 80),
+		color = C(250, 205, 80),
+		body = {
+			{
+				size = Vector3.new(2.9, 2.9, 2.9),
+				at = Vector3.new(0, 1.45, 0),
+				color = C(250, 200, 70),
+				shape = BALL,
+				material = Enum.Material.Metal,
+			},
+			{
+				size = Vector3.new(2.1, 2.1, 2.1),
+				at = Vector3.new(0, 2.8, 0),
+				color = C(255, 218, 110),
+				shape = BALL,
+				material = Enum.Material.Metal,
+			},
+			{
+				size = Vector3.new(0.6, 3.05, 3.05),
+				at = Vector3.new(0, 1.7, 0),
+				color = C(198, 148, 32),
+				shape = CYL,
+				rot = Vector3.new(0, 0, 90),
+			},
+			{
+				size = Vector3.new(0.7, 0.7, 0.7),
+				at = Vector3.new(0, 4.0, 0),
+				color = C(255, 240, 170),
+				shape = BALL,
+				material = Enum.Material.Neon,
+			},
+		},
 		pool = {
 			{ petId = "frulli_frulla", weight = 20 },
 			{ petId = "talpa_di_ferro", weight = 20 },
@@ -69,7 +131,40 @@ Eggs.List = {
 		coinPrice = 5000,
 		robuxPrice = 249,
 		productId = 0,
-		color = Color3.fromRGB(160, 110, 235),
+		color = C(160, 110, 235),
+		body = {
+			{ size = Vector3.new(3.0, 3.0, 3.0), at = Vector3.new(0, 1.5, 0), color = C(84, 54, 140), shape = BALL },
+			{ size = Vector3.new(2.2, 2.2, 2.2), at = Vector3.new(0, 2.9, 0), color = C(104, 68, 170), shape = BALL },
+			{
+				size = Vector3.new(0.35, 4.6, 4.6),
+				at = Vector3.new(0, 1.9, 0),
+				color = C(190, 140, 255),
+				shape = CYL,
+				rot = Vector3.new(8, 0, 90),
+				material = Enum.Material.Neon,
+			},
+			{
+				size = Vector3.new(0.45, 0.45, 0.45),
+				at = Vector3.new(0.9, 3.3, -0.6),
+				color = C(250, 245, 200),
+				shape = BALL,
+				material = Enum.Material.Neon,
+			},
+			{
+				size = Vector3.new(0.32, 0.32, 0.32),
+				at = Vector3.new(-1.0, 2.1, -0.8),
+				color = C(250, 245, 200),
+				shape = BALL,
+				material = Enum.Material.Neon,
+			},
+			{
+				size = Vector3.new(0.28, 0.28, 0.28),
+				at = Vector3.new(0.4, 1.0, -1.2),
+				color = C(250, 245, 200),
+				shape = BALL,
+				material = Enum.Material.Neon,
+			},
+		},
 		pool = {
 			{ petId = "orangutini", weight = 24 },
 			{ petId = "tigrilini", weight = 24 },

@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
 local Piece = require(Shared:WaitForChild("util"):WaitForChild("Piece"))
+local Pets = require(Shared:WaitForChild("data"):WaitForChild("Pets"))
 
 local Pet = Class.new()
 
@@ -52,6 +53,13 @@ function Pet.new(def: any, position: Vector3, parent: Instance)
 		weld.Part1 = part
 		weld.Parent = part
 	end
+
+	-- A tint of the pet's rarity, so a Legendary reads as one at a glance in a dim arena.
+	local glow = Instance.new("PointLight")
+	glow.Color = Pets.rarityOf(def).color
+	glow.Range = 12
+	glow.Brightness = 1.1
+	glow.Parent = root
 
 	model.Parent = parent
 	return self

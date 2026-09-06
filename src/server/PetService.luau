@@ -10,9 +10,11 @@
 -- the pet is both granted AND saved. Returning it before the save means a player who
 -- disconnects at the wrong moment pays and keeps nothing.
 
+local Debris = game:GetService("Debris")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -87,6 +89,45 @@ function PetService:grantFromEgg(player: Player, egg: any): string?
 	return petId
 end
 
+-- A ring of the pet's rarity colour bursting outward at the player. Cheap, short-lived,
+-- and it fires wherever they are, so a hatch reads as an event rather than a silent number
+-- change in a panel.
+function PetService:playReveal(player: Player, petId: string)
+	local def = Pets.fromId(petId)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not def or not root then
+		return
+	end
+	local color = Pets.rarityOf(def).color
+
+	local ring = Instance.new("Part")
+	ring.Name = "HatchBurst"
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Size = Vector3.new(0.4, 3, 3)
+	ring.Color = color
+	ring.Material = Enum.Material.Neon
+	ring.Transparency = 0.15
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.CastShadow = false
+	ring.CFrame = CFrame.new(root.Position - Vector3.new(0, 2.4, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = self.folder
+
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = 26
+	light.Brightness = 4
+	light.Parent = ring
+
+	local info = TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	TweenService:Create(ring, info, { Size = Vector3.new(0.4, 28, 28), Transparency = 1 }):Play()
+	TweenService:Create(light, info, { Brightness = 0 }):Play()
+	Debris:AddItem(ring, 1)
+end
+
 -- Coin path: check the balance, spend it, then roll. spendCoins is the gate — it returns
 -- false and leaves the balance alone if they can't afford it.
 function PetService:hatchWithCoins(player: Player, eggId: string)
@@ -99,6 +140,9 @@ function PetService:hatchWithCoins(player: Player, eggId: string)
 		return
 	end
 	local petId = self:grantFromEgg(player, egg)
+	if petId then
+		self:playReveal(player, petId)
+	end
 	self:sync(player, petId)
 end
 
@@ -131,6 +175,7 @@ function PetService:hookReceipts()
 		if not self.dataService:save(player) then
 			return Enum.ProductPurchaseDecision.NotProcessedYet
 		end
+		self:playReveal(player, granted :: string)
 		self:sync(player, granted)
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
