@@ -19,7 +19,7 @@ export type PetDef = {
 	rarity: string, -- id into data/Rarities; drives its colour and its egg odds
 	damage: number, -- per hit, before the owner's damage multiplier
 	fireInterval: number, -- seconds between hits
-	range: number, -- studs
+	range: number, -- studs; kept inside GameConfig.Combat.MaxTargetRange, same as weapons
 	hover: number, -- height it floats at, above the owner's feet
 	body: { any },
 }
@@ -83,7 +83,7 @@ Pets.List = {
 		rarity = "SuperRare",
 		damage = 8,
 		fireInterval = 0.55,
-		range = 50,
+		range = 44,
 		hover = 6,
 		body = {
 			{ size = Vector3.new(1.5, 2.0, 1.5), at = Vector3.new(0, 0, 0), color = C(240, 205, 70) },
@@ -144,7 +144,7 @@ Pets.List = {
 		rarity = "Epic",
 		damage = 12,
 		fireInterval = 0.45,
-		range = 55,
+		range = 46,
 		hover = 6.5,
 		body = {
 			{ size = Vector3.new(1.6, 1.5, 2.6), at = Vector3.new(0, 0, 0), color = C(244, 168, 186) },
@@ -200,7 +200,7 @@ Pets.List = {
 		rarity = "Legendary",
 		damage = 20,
 		fireInterval = 0.4,
-		range = 65,
+		range = 44,
 		hover = 7.5,
 		body = {
 			{ size = Vector3.new(2.4, 2.2, 2.4), at = Vector3.new(0, 0.4, 0), color = C(140, 90, 200), shape = BALL },
@@ -233,7 +233,7 @@ Pets.List = {
 		rarity = "Legendary",
 		damage = 45,
 		fireInterval = 0.85,
-		range = 60,
+		range = 48,
 		hover = 7,
 		body = {
 			{ size = Vector3.new(2.2, 2.6, 2.2), at = Vector3.new(0, 0.6, 0), color = C(70, 78, 96) },

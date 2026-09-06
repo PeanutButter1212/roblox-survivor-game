@@ -9,11 +9,14 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
+local GameConfig = require(Shared:WaitForChild("GameConfig"))
 
 local CameraController = Class.new()
 
-local HEIGHT = 60 -- studs above the character
-local BACK = 22 -- studs behind for a slight tilt
+-- Shared with combat: GameConfig.Combat.MaxTargetRange is derived from this framing, so
+-- moving the camera means revisiting that number too.
+local HEIGHT = GameConfig.Camera.Height
+local BACK = GameConfig.Camera.Back
 local RENDER_NAME = "TopDownCamera"
 
 -- Creates the controller and starts tracking the player's in-level state.

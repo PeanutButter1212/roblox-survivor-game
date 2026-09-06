@@ -76,8 +76,17 @@ Instance mapping lives in `default.project.json`.
   feet, -Z forward); `Enemy` assembles them, welded to one anchored hitbox so a frame
   replicates one CFrame per enemy rather than one per limb. Keep that invariant. Arena
   props in `data/Arenas` are authored the same way.
-- **Arena props never collide.** Enemies chase in a straight line, so anything solid to
-  the player but not to the swarm reads as a bug. Decoration only.
+- **Props never collide; obstacles always do.** A theme scatters both. Props are pure
+  decoration. Obstacles are solid AND recorded on the Arena, so `Enemy:steer` pushes the
+  swarm clear of them via `Arena:resolveObstacles`. Cover that stopped the player but not
+  the swarm would read as a bug — if you add a solid thing, the enemies must respect it.
+- **Nothing may shoot further than the camera can see.** `GameConfig.Camera` and
+  `GameConfig.Combat.MaxTargetRange` are one decision: the framing decides the play radius,
+  weapon and pet ranges are authored inside it, and `GameConfig.targetRange()` clamps as
+  the invariant. Moving the camera means revisiting that number.
+- **Enemy behaviour is data.** A bestiary row's `behaviour` picks chase / charger /
+  circler / splitter; the tuning lives in `GameConfig.Enemies`. `Enemy:steer` dispatches on
+  it — never branch on a specific enemy id.
 - **Lighting is client-side.** `Lighting` is one shared instance but every player is on
   their own stage, so a server-side change drags everyone into one player's weather. Stage
   moods live on the theme (`data/Arenas`) and are applied by `AtmosphereController`.

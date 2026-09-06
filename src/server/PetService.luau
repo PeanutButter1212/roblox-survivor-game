@@ -19,6 +19,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
+local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Pets = require(Shared:WaitForChild("data"):WaitForChild("Pets"))
 local Eggs = require(Shared:WaitForChild("data"):WaitForChild("Eggs"))
@@ -276,7 +277,7 @@ function PetService:updateCombat(profile: any, enemyManager: any, dt: number)
 	end
 	for _, pet in live do
 		local ready = pet:tryFire(dt)
-		local targets = enemyManager:getNearest(pet:getPosition(), pet.def.range, 1)
+		local targets = enemyManager:getNearest(pet:getPosition(), GameConfig.targetRange(pet.def.range), 1)
 		local target = targets[1]
 		pet.lastTarget = if target then target:getPosition() else nil
 		if ready and target then

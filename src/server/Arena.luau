@@ -5,9 +5,12 @@
 -- own Arena, built far from the others, so players never see each other's fights.
 -- Provides bounds clamping and teardown.
 --
--- The theme decides the surfaces, the accent trim, and which props get scattered on the
--- floor. Props are decoration only (non-colliding): enemies chase in a straight line, so
--- anything that stopped the player but not the swarm would read as a bug.
+-- The theme decides the surfaces, the accent trim, and what gets scattered on the floor.
+-- There are two kinds of scatter, and the difference matters:
+--
+--   props     — decoration, non-colliding, purely visual.
+--   obstacles — solid, and the arena remembers each footprint so Enemy:steer can push the
+--               swarm clear of them too. Cover only works if it stops both sides.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -22,6 +25,7 @@ local Piece = require(Shared:WaitForChild("util"):WaitForChild("Piece"))
 local Arena = Class.new()
 
 local PROP_CLEARANCE = 22 -- keep props this far from the middle, where the player lands
+local OBSTACLE_CLEARANCE = 32 -- solid cover needs a wider berth; the player spawns in the middle
 
 -- Builds the floor, trim, walls and props of a `size`-wide arena centred at `origin`,
 -- using the theme named by `themeId`.
@@ -40,8 +44,85 @@ function Arena.new(origin: Vector3, size: number, themeId: string?)
 	self:buildFloor()
 	self:buildTrim()
 	self:buildWalls()
+	self.obstacles = {} :: { { position: Vector3, radius: number } }
 	self:buildProps()
+	self:buildObstacles()
 	return self
+end
+
+-- Picks a random floor spot at least `clearance` studs from the middle, or nil if a few
+-- tries didn't find one. Giving up just costs one scatter.
+function Arena:findSpot(clearance: number): Vector3?
+	local limit = self.halfSize - GameConfig.Arena.SpawnMargin
+	for _ = 1, 8 do
+		local x = (math.random() * 2 - 1) * limit
+		local z = (math.random() * 2 - 1) * limit
+		if math.sqrt(x * x + z * z) >= clearance then
+			return Vector3.new(x, 0, z)
+		end
+	end
+	return nil
+end
+
+-- Scatters the theme's solid obstacles and records their footprints. They're spaced off
+-- each other as well as off the middle, so two never fuse into one impassable lump.
+function Arena:buildObstacles()
+	if #self.theme.obstacles == 0 then
+		return
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "Obstacles"
+	folder.Parent = self.folder
+
+	local count = math.floor(self.theme.obstacleDensity * self.size * self.size / 10000)
+	for _ = 1, count do
+		local spot = self:findSpot(OBSTACLE_CLEARANCE)
+		if not spot then
+			continue
+		end
+		local obstacle = RandomUtil.weightedPick(self.theme.obstacles)
+		local position = self.center + spot
+
+		local tooClose = false
+		for _, placed in self.obstacles do
+			if (placed.position - position).Magnitude < placed.radius + obstacle.radius + 8 then
+				tooClose = true
+				break
+			end
+		end
+		if tooClose then
+			continue
+		end
+
+		local base = CFrame.new(position) * CFrame.Angles(0, math.random() * math.pi * 2, 0)
+		for _, piece in obstacle.pieces do
+			local part = Piece.build(piece, base, 0)
+			part.CanCollide = true -- the whole point: this one stops you
+			part.CanQuery = true
+			part.Parent = folder
+		end
+		table.insert(self.obstacles, { position = position, radius = obstacle.radius })
+	end
+end
+
+-- Pushes `position` out of any obstacle it has ended up inside, treating both as circles
+-- on the floor plane. Enemies call this every frame through Enemy:steer, which makes them
+-- slide along cover rather than walk through it — they keep aiming at the player and the
+-- push resolves the rest, so no pathfinding is involved.
+function Arena:resolveObstacles(position: Vector3, radius: number): Vector3
+	local result = position
+	for _, obstacle in self.obstacles do
+		local offset = Vector3.new(result.X - obstacle.position.X, 0, result.Z - obstacle.position.Z)
+		local distance = offset.Magnitude
+		local minimum = obstacle.radius + radius
+		if distance < minimum then
+			-- Dead centre has no direction to push along; nudge it off the axis first.
+			local direction = if distance > 0.01 then offset.Unit else Vector3.new(1, 0, 0)
+			local pushed = obstacle.position + direction * minimum
+			result = Vector3.new(pushed.X, result.Y, pushed.Z)
+		end
+	end
+	return result
 end
 
 -- Creates the arena floor.
@@ -143,23 +224,12 @@ function Arena:buildProps()
 
 	local area = self.size * self.size
 	local count = math.floor(self.theme.propDensity * area / 10000)
-	local limit = self.halfSize - GameConfig.Arena.SpawnMargin
 
 	for _ = 1, count do
-		-- Rejection-sample a spot outside the landing clearance. A handful of tries is
-		-- plenty at these radii, and giving up just means one fewer prop.
-		local x, z = 0, 0
-		for _ = 1, 6 do
-			x = (math.random() * 2 - 1) * limit
-			z = (math.random() * 2 - 1) * limit
-			if math.sqrt(x * x + z * z) >= PROP_CLEARANCE then
-				break
-			end
-		end
-		if math.sqrt(x * x + z * z) >= PROP_CLEARANCE then
+		local spot = self:findSpot(PROP_CLEARANCE)
+		if spot then
 			local prop = RandomUtil.weightedPick(self.theme.props)
-			local base = CFrame.new(self.center + Vector3.new(x, 0, z))
-				* CFrame.Angles(0, math.random() * math.pi * 2, 0)
+			local base = CFrame.new(self.center + spot) * CFrame.Angles(0, math.random() * math.pi * 2, 0)
 			self:buildProp(prop, base, folder)
 		end
 	end

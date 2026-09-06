@@ -10,6 +10,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
+local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Weapons = require(Shared:WaitForChild("data"):WaitForChild("Weapons"))
 
 local CombatService = Class.new()
@@ -49,7 +50,7 @@ function CombatService:fireWeapon(
 	if not def then
 		return
 	end
-	local targets = enemyManager:getNearest(origin, def.range, def.targets)
+	local targets = enemyManager:getNearest(origin, GameConfig.targetRange(def.range), def.targets)
 	local damage = Weapons.scaledDamage(def, owned.power) * profile.stats.damageMult
 	for _, enemy in targets do
 		tracer(origin, enemy:getPosition())

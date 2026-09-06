@@ -17,6 +17,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
 local Piece = require(Shared:WaitForChild("util"):WaitForChild("Piece"))
 local Enemies = require(Shared:WaitForChild("data"):WaitForChild("Enemies"))
+local GameConfig = require(Shared:WaitForChild("GameConfig"))
 
 local Enemy = Class.new()
 
@@ -29,8 +30,8 @@ export type Stats = { health: number, speed: number, damage: number, xp: number,
 
 -- Builds one cosmetic piece in the model's local space. `base` is the hitbox CFrame and
 -- `feetOffset` converts the def's floor-relative y into an offset from that centre.
-function Enemy:addPiece(piece: any, base: CFrame, feetOffset: number)
-	local part = Piece.build(piece, base, feetOffset)
+function Enemy:addPiece(piece: any, base: CFrame, feetOffset: number, scale: number?)
+	local part = Piece.build(piece, base, feetOffset, scale)
 	part.Anchored = false -- welded to the anchored hitbox instead; see the header
 	part.Massless = true
 	part.Parent = self.model
@@ -71,7 +72,7 @@ end
 -- entirely: same size, same stats, one Instance instead of ~23. EnemyManager passes false
 -- once the swarm's cosmetic-part budget is spent, so a huge wave degrades visually rather
 -- than drowning the server in parts.
-function Enemy.new(def: any, position: Vector3, stats: Stats, parent: Instance, detailed: boolean)
+function Enemy.new(def: any, position: Vector3, stats: Stats, parent: Instance, detailed: boolean, scale: number?)
 	local self = setmetatable({}, Enemy)
 
 	self.def = def
@@ -84,6 +85,14 @@ function Enemy.new(def: any, position: Vector3, stats: Stats, parent: Instance, 
 	self.dead = false
 	self.lastHit = 0
 	self.appliedTint = 0
+	self.scale = scale or 1
+	self.isChild = false -- set by EnemyManager on the copies a splitter leaves behind
+	-- Behaviour state. `phase`/`timer` drive the charger's approach/wind-up/dash cycle;
+	-- `spin` fixes a circler's direction once so it can't jitter between the two.
+	self.phase = "approach"
+	self.timer = 0
+	self.dashDir = nil :: Vector3?
+	self.spin = if math.random() < 0.5 then -1 else 1
 	self.pieces = {} :: { { part: BasePart, color: Color3 } }
 
 	local model = Instance.new("Model")
@@ -93,7 +102,9 @@ function Enemy.new(def: any, position: Vector3, stats: Stats, parent: Instance, 
 	-- The hitbox carries all the physics-adjacent duties; the body pieces are scenery.
 	local hitbox = Instance.new("Part")
 	hitbox.Name = "Hitbox"
-	hitbox.Size = def.hitbox
+	local size = def.hitbox * (scale or 1)
+	self.radius = math.max(size.X, size.Z) / 2
+	hitbox.Size = size
 	hitbox.Transparency = if detailed then 1 else 0
 	hitbox.Material = Enum.Material.SmoothPlastic
 	hitbox.Anchored = true
@@ -101,17 +112,17 @@ function Enemy.new(def: any, position: Vector3, stats: Stats, parent: Instance, 
 	hitbox.CanQuery = false
 	hitbox.CanTouch = false
 	hitbox.CastShadow = false
-	hitbox.CFrame = CFrame.new(position.X, position.Y + def.hitbox.Y / 2, position.Z)
+	hitbox.CFrame = CFrame.new(position.X, position.Y + size.Y / 2, position.Z)
 	hitbox.Parent = model
 	model.PrimaryPart = hitbox
 	self.part = hitbox
 
 	if detailed then
 		for _, piece in def.body do
-			self:addPiece(piece, hitbox.CFrame, -def.hitbox.Y / 2)
+			self:addPiece(piece, hitbox.CFrame, -size.Y / 2, scale)
 		end
 		if def.nametag then
-			self:addNametag(def.name, def.hitbox.Y)
+			self:addNametag(def.name, size.Y)
 		end
 	else
 		-- The block IS the body here, so it's what takeDamage tints.
@@ -174,19 +185,81 @@ function Enemy:distanceTo(position: Vector3): number
 	return (self.part.Position - position).Magnitude
 end
 
--- Steps the enemy toward `targetPos` by `speed` studs/second, staying on the floor and
--- turning to face where it's heading (the bodies have fronts, so this matters).
-function Enemy:moveToward(targetPos: Vector3, speed: number, dt: number)
+-- A charger: closes at reduced speed, stops dead to telegraph, then dashes in a straight
+-- line along the direction it committed to. Standing still IS the tell — a player who
+-- learns it can step aside, which is the whole point of the behaviour.
+function Enemy:chargerStep(dt: number, dir: Vector3, dist: number): Vector3
+	local cfg = GameConfig.Enemies.Charger
+	self.timer -= dt
+
+	if self.phase == "approach" then
+		if self.timer <= 0 and dist <= cfg.TriggerRange then
+			self.phase = "wind"
+			self.timer = cfg.WindUp
+			return Vector3.zero
+		end
+		return dir * self.speed * cfg.ApproachFactor
+	elseif self.phase == "wind" then
+		if self.timer <= 0 then
+			self.phase = "dash"
+			self.timer = cfg.DashTime
+			self.dashDir = dir -- committed here, so the dash can be dodged
+		end
+		return Vector3.zero
+	end
+
+	if self.timer <= 0 then
+		self.phase = "approach"
+		self.timer = cfg.Cooldown
+		return dir * self.speed * cfg.ApproachFactor
+	end
+	return (self.dashDir or dir) * self.speed * cfg.DashFactor
+end
+
+-- A circler: holds a ring at Orbit studs and strafes around it, closing or backing off
+-- when it drifts outside the band. Keeps the swarm from collapsing into one blob.
+function Enemy:circlerStep(dir: Vector3, dist: number): Vector3
+	local cfg = GameConfig.Enemies.Circler
+	local speed = self.speed * cfg.StrafeFactor
+	if dist > cfg.Orbit + cfg.Tolerance then
+		return dir * speed
+	end
+	if dist < cfg.Orbit - cfg.Tolerance then
+		return -dir * speed
+	end
+	return Vector3.new(-dir.Z, 0, dir.X) * self.spin * speed
+end
+
+-- Moves the enemy for one frame according to its behaviour, pushed clear of any arena
+-- obstacles, and turns it to face where it's going.
+function Enemy:steer(dt: number, targetPos: Vector3, arena: any)
 	local pos = self.part.Position
 	local to = Vector3.new(targetPos.X - pos.X, 0, targetPos.Z - pos.Z)
 	local dist = to.Magnitude
 	if dist <= 0.05 then
 		return
 	end
-	local step = to.Unit * speed * dt
-	local newPos = Vector3.new(pos.X + step.X, pos.Y, pos.Z + step.Z)
-	-- Only the anchored hitbox is moved; the welded body follows it.
-	self.part.CFrame = CFrame.lookAt(newPos, newPos + to.Unit)
+	local dir = to.Unit
+
+	local velocity
+	if self.def.behaviour == "charger" then
+		velocity = self:chargerStep(dt, dir, dist)
+	elseif self.def.behaviour == "circler" then
+		velocity = self:circlerStep(dir, dist)
+	else
+		velocity = dir * self.speed
+	end
+
+	local next = pos + velocity * dt
+	if arena then
+		next = arena:resolveObstacles(next, self.radius)
+	end
+	next = Vector3.new(next.X, pos.Y, next.Z)
+
+	-- Face travel while moving, and the player while winding up, so a charger telegraphs
+	-- both by stopping and by staring at you.
+	local face = if velocity.Magnitude > 0.01 then Vector3.new(velocity.X, 0, velocity.Z).Unit else dir
+	self.part.CFrame = CFrame.lookAt(next, next + face)
 end
 
 -- Applies damage, tints the whole body toward red, and returns true if this hit killed it.

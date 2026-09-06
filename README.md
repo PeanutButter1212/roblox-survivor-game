@@ -15,8 +15,13 @@ to keep it. The run resumes once you've picked. Survive to 0:00 to win. Die and 
 to the lobby; walk back through the portal to retry. Health, XP, coins and the timer are
 on the HUD.
 
-**The enemies:** fourteen brainrots, each with its own body built from primitives and its
-own stat profile — Tung Tung Tung Sahur and Chimpanzini Bananini from stage 1, up through
+**The enemies:** fourteen brainrots, each with its own body, stat profile **and
+behaviour**. Most chase you down, but **chargers** (Tralalero, Bombardiro, Cappuccino,
+Bombombini) close in, stop dead to telegraph, then dash along the line they committed to —
+stand still and you're hit, step aside and they miss. **Circlers** (Bobrito, Trippi
+Troppi, Ballerina) hold a ring around you and strafe instead of piling in. And **Glorbo
+Fruttodrillo splits** into smaller, faster watermelon chunks when you kill it. Behaviour is
+one field per row — Tung Tung Tung Sahur and Chimpanzini Bananini from stage 1, up through
 Tralalero Tralala, Lirili Larila, Frigo Camelo, Bombardiro Crocodilo, Glorbo Fruttodrillo,
 Cappuccino Assassino and Bombombini Gusini as you climb. Fast glass cannons, slow walls,
 and elites with floating nametags. Early fodder thins out as the heavies come online, so
@@ -37,8 +42,12 @@ every player into one player's weather.
 **The maps:** every stage is played on one of six themes — Sahur Woods, Tralalero Shore,
 Frigo Freezer, Bombardiro Airfield, Glorbo Orchard, Cappuccino Cafe — each with its own
 floor and wall surfaces, accent trim and scattered props (stumps, palms, ice shards,
-barrels, melons, coffee tables). Stages past the sixth cycle back through them. Props are
-decoration and don't block movement. One row in `data/Arenas.luau` per theme.
+barrels, melons, coffee tables). Stages past the sixth cycle back through them.
+
+Each map also scatters **solid obstacles** — boulders, ice walls, shipping containers, hay
+bales, café counters — that block you *and* the swarm, so you can put cover between
+yourself and a charger. Props stay purely decorative; obstacles are the ones that stop
+things. One row in `data/Arenas.luau` per theme.
 
 **Coins & farming:** brainrots sometimes **drop coins** when they die — walk near one and
 it flies to you. Clearing a stage pays **coins** too (shown on the HUD). Your **first**
@@ -97,6 +106,14 @@ DataStores. Roblox hosts all of this — no external backend.
   one or push the next — your choice shows on the portal door), and **click the SKILL TREE
   board** to spend coins on permanent character buffs.
 
+### A note on weapon range
+
+Weapon and pet ranges are deliberately kept **inside what the top-down camera can see**.
+Earlier the rifle reached 95 studs while the camera showed about 45, so you spent the round
+watching tracers fly at enemies that had never appeared on screen. The camera framing now
+sets the play radius, every range is authored inside it, and `GameConfig.targetRange()`
+clamps anything that isn't. If you zoom the camera, revisit `MaxTargetRange` with it.
+
 ### Selling eggs for Robux (optional)
 
 The coin path works out of the box. To turn on the Robux path:
@@ -116,7 +133,7 @@ And **cashing out Robux** through DevEx has its own requirements (age, ID verifi
 minimum balance) that are entirely on Roblox's side.
 
 ### Where to tune things
-- `src/shared/GameConfig.luau` — world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards and kill drops** (`GameConfig.Coins`), **lobby size and palette** (`GameConfig.World` / `GameConfig.Lobby`).
+- `src/shared/GameConfig.luau` — camera framing and the play radius (`GameConfig.Camera` / `GameConfig.Combat.MaxTargetRange` — these are one decision, see below), enemy behaviour tuning (`GameConfig.Enemies.Charger` / `.Circler` / `.Splitter`), world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards and kill drops** (`GameConfig.Coins`), **lobby size and palette** (`GameConfig.World` / `GameConfig.Lobby`).
 - `src/shared/data/Arenas.luau` — also carries each theme's `mood` (the Lighting preset used while you're on that stage).
 - `src/shared/data/Enemies.luau` — the brainrot bestiary: stats, spawn odds, unlock stage, and each one's body (add a brainrot = add a row).
 - `src/shared/data/Arenas.luau` — map themes: surfaces, trim, props (add a map = add a row).

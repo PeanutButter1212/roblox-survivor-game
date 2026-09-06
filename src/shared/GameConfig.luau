@@ -35,9 +35,34 @@ GameConfig.Arena = {
 	WallColor = Color3.fromRGB(35, 38, 48),
 }
 
+-- The top-down camera, and the play radius it implies. These two are one decision: the
+-- camera decides how much ground a player can see, and nothing in combat may reach past
+-- it. Shooting something you have never seen on screen reads as the game firing at
+-- nothing, which is exactly what a long weapon range used to do here.
+--
+-- At Height 72 / Back 26 the camera sits ~76 studs from the player; with Roblox's default
+-- 70-degree vertical FOV that puts roughly 53 studs of ground above and below them on
+-- screen. MaxTargetRange is set just inside that.
+GameConfig.Camera = {
+	Height = 72,
+	Back = 26,
+}
+
+GameConfig.Combat = {
+	MaxTargetRange = 50, -- no weapon or pet may acquire a target further away than this
+}
+
+-- Clamps a weapon or pet's range to what the player can actually see. Weapon data is
+-- authored inside the limit already; this is the invariant that keeps it that way.
+function GameConfig.targetRange(range: number): number
+	return math.min(range, GameConfig.Combat.MaxTargetRange)
+end
+
 -- Enemy properties that don't vary by stage (HP/speed/contact damage are per-stage).
 GameConfig.Enemies = {
-	SpawnRadius = 80, -- how far from the player they try to appear
+	-- Just outside the visible area: enemies appear off screen and walk into view, rather
+	-- than materialising in front of the player or lurking somewhere unseeable.
+	SpawnRadius = 58, -- how far from the player they try to appear
 	ContactRange = 5,
 	ContactCooldown = 0.6, -- seconds between hits from the same enemy
 	XPReward = 5,
@@ -48,6 +73,27 @@ GameConfig.Enemies = {
 	-- once it's spent are single coloured blocks instead. Head count (and therefore
 	-- difficulty) is never reduced — only how much of the swarm is fully modelled.
 	DetailBudget = 420,
+	-- Per-behaviour tuning (see the `behaviour` field on data/Enemies rows). Kept here so
+	-- a bestiary row stays one line of behaviour rather than a block of numbers.
+	Charger = {
+		ApproachFactor = 0.7, -- speed multiplier while closing in
+		TriggerRange = 26, -- winds up once this close
+		WindUp = 0.65, -- seconds stood still, telegraphing the dash
+		DashFactor = 3.2, -- speed multiplier during the dash
+		DashTime = 0.7,
+		Cooldown = 1.1, -- seconds of normal approach before it may wind up again
+	},
+	Circler = {
+		Orbit = 17, -- distance it tries to hold
+		Tolerance = 4, -- closes in or backs off outside this band
+		StrafeFactor = 0.95, -- speed multiplier while circling
+	},
+	Splitter = {
+		Children = 2,
+		HealthFactor = 0.35,
+		ScaleFactor = 0.55,
+		SpreadRadius = 4,
+	},
 }
 
 GameConfig.Progression = {
