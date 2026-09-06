@@ -6,6 +6,7 @@
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
+local Icons = require(script.Parent:WaitForChild("Icons"))
 
 local HudController = Class.new()
 
@@ -82,19 +83,31 @@ function HudController:buildStageLabel(gui: ScreenGui)
 	self.stageLabel = label
 end
 
--- Builds the coin balance readout just under the stage label (top-left).
+-- Builds the coin balance readout just under the stage label (top-left): the drawn coin
+-- icon plus the running total.
 function HudController:buildCoins(gui: ScreenGui)
+	local holder = Instance.new("Frame")
+	holder.Size = UDim2.fromOffset(140, 28)
+	holder.Position = UDim2.new(0, 16, 0, 52)
+	holder.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
+	holder.BackgroundTransparency = 0.2
+	holder.Parent = gui
+	round(holder, 8)
+
+	local icon = Icons.coin(holder, 20)
+	icon.Position = UDim2.new(0, 8, 0.5, 0)
+	icon.AnchorPoint = Vector2.new(0, 0.5)
+
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromOffset(140, 28)
-	label.Position = UDim2.new(0, 16, 0, 52)
-	label.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
-	label.BackgroundTransparency = 0.2
+	label.Size = UDim2.new(1, -36, 1, 0)
+	label.Position = UDim2.new(0, 34, 0, 0)
+	label.BackgroundTransparency = 1
+	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Font = Enum.Font.GothamBold
 	label.TextSize = 15
 	label.TextColor3 = Color3.fromRGB(255, 215, 90)
-	label.Text = "🪙 0"
-	label.Parent = gui
-	round(label, 8)
+	label.Text = "0"
+	label.Parent = holder
 	self.coinLabel = label
 end
 
@@ -249,7 +262,7 @@ function HudController:hookStage()
 			local reward = player:GetAttribute("LastReward") or 0
 			local first = player:GetAttribute("LastRewardFirst")
 			local suffix = if first then "" else " (replay)"
-			self.banner.Text = string.format("STAGE CLEARED!  +%d 🪙%s", reward, suffix)
+			self.banner.Text = string.format("STAGE CLEARED!  +%d COINS%s", reward, suffix)
 		elseif phase == "Failed" then
 			self.banner.TextColor3 = Color3.fromRGB(255, 110, 110)
 			self.banner.Text = "STAGE FAILED"
@@ -273,7 +286,7 @@ end
 function HudController:hookCoins()
 	local function refresh()
 		local coins = self.player:GetAttribute("Coins") or 0
-		self.coinLabel.Text = "🪙 " .. tostring(coins)
+		self.coinLabel.Text = tostring(coins)
 	end
 	self.player:GetAttributeChangedSignal("Coins"):Connect(refresh)
 	refresh()

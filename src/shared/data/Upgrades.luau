@@ -15,6 +15,8 @@ export type Archetype = {
 	id: string,
 	kind: string, -- "stat" or "weapon"
 	label: string, -- short name shown on the slot reel
+	icon: string, -- glyph shown on the reel card's badge
+	tint: Color3, -- badge colour behind that glyph
 	isAvailable: (profile: any) -> boolean,
 	apply: (profile: any, rarityPower: number) -> (),
 	describe: (rarityPower: number) -> string,
@@ -27,6 +29,8 @@ local statArchetypes: { Archetype } = {
 	{
 		id = "damage",
 		kind = "stat",
+		icon = "⚔️",
+		tint = Color3.fromRGB(240, 90, 70),
 		label = "Damage",
 		isAvailable = function(_profile)
 			return true
@@ -41,6 +45,8 @@ local statArchetypes: { Archetype } = {
 	{
 		id = "firerate",
 		kind = "stat",
+		icon = "⚡",
+		tint = Color3.fromRGB(250, 200, 60),
 		label = "Fire Rate",
 		isAvailable = function(_profile)
 			return true
@@ -55,6 +61,8 @@ local statArchetypes: { Archetype } = {
 	{
 		id = "speed",
 		kind = "stat",
+		icon = "👟",
+		tint = Color3.fromRGB(90, 220, 140),
 		label = "Move Speed",
 		isAvailable = function(_profile)
 			return true
@@ -69,6 +77,8 @@ local statArchetypes: { Archetype } = {
 	{
 		id = "maxhp",
 		kind = "stat",
+		icon = "❤️",
+		tint = Color3.fromRGB(240, 95, 135),
 		label = "Max Health",
 		isAvailable = function(_profile)
 			return true
@@ -90,6 +100,8 @@ local function makeWeaponArchetype(weaponId: string): Archetype
 		id = "weapon_" .. weaponId,
 		kind = "weapon",
 		label = def.name,
+		icon = def.icon,
+		tint = def.tint,
 		isAvailable = function(profile)
 			-- Only offer guns the player doesn't already own.
 			return not profile:hasWeapon(weaponId)

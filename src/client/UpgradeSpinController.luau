@@ -16,11 +16,12 @@ local UpgradeSpinController = Class.new()
 
 -- Card/reel geometry (vertical).
 local CARD_W = 130
-local CARD_H = 150
+local CARD_H = 172
 local V_PAD = 14
 local V_STEP = CARD_H + V_PAD
 local WINDOW_W = CARD_W + 16
-local WINDOW_H = 200
+local WINDOW_H = 224
+local BADGE = 54 -- diameter of the round upgrade icon
 local START_INDEX = 2 -- card centred when a spin begins
 local BASE_SPIN_TIME = 2.0 -- first column's spin duration
 local STAGGER = 0.4 -- each later column spins this much longer
@@ -53,7 +54,7 @@ function UpgradeSpinController.new(player: Player)
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	local panel = Instance.new("Frame")
-	panel.Size = UDim2.fromOffset(COLUMN_COUNT * (WINDOW_W + 18) + 24, 320)
+	panel.Size = UDim2.fromOffset(COLUMN_COUNT * (WINDOW_W + 18) + 24, 348)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
@@ -152,7 +153,37 @@ function UpgradeSpinController:buildColumn(parent: Instance, index: number): any
 	return { window = window, reel = reel, stroke = stroke }
 end
 
--- Builds a single reel card for an item ({ label, desc, rarity, color }).
+-- Builds the round icon badge: the upgrade's own tint behind its glyph, ringed in white
+-- so it stays legible on every rarity colour the card can land on.
+function UpgradeSpinController:makeBadge(card: Instance, item: any)
+	local badge = Instance.new("Frame")
+	badge.Size = UDim2.fromOffset(BADGE, BADGE)
+	badge.Position = UDim2.new(0.5, 0, 0, 26)
+	badge.AnchorPoint = Vector2.new(0.5, 0)
+	badge.BackgroundColor3 = item.tint or Color3.fromRGB(200, 200, 210)
+	badge.Parent = card
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = badge
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(255, 255, 255)
+	stroke.Transparency = 0.35
+	stroke.Parent = badge
+
+	local glyph = Instance.new("TextLabel")
+	glyph.Size = UDim2.fromScale(1, 1)
+	glyph.BackgroundTransparency = 1
+	glyph.Font = Enum.Font.GothamBold
+	glyph.TextSize = 28
+	glyph.TextColor3 = Color3.fromRGB(255, 255, 255)
+	glyph.Text = item.icon or "?"
+	glyph.Parent = badge
+end
+
+-- Builds a single reel card for an item ({ label, desc, icon, tint, rarity, color }).
 function UpgradeSpinController:makeCard(reel: Instance, item: any, index: number)
 	local card = Instance.new("Frame")
 	card.Size = UDim2.fromOffset(CARD_W, CARD_H)
@@ -164,7 +195,7 @@ function UpgradeSpinController:makeCard(reel: Instance, item: any, index: number
 	corner.Parent = card
 
 	local rarity = Instance.new("TextLabel")
-	rarity.Size = UDim2.new(1, -8, 0, 20)
+	rarity.Size = UDim2.new(1, -8, 0, 18)
 	rarity.Position = UDim2.new(0, 4, 0, 6)
 	rarity.BackgroundTransparency = 1
 	rarity.Font = Enum.Font.GothamBold
@@ -173,9 +204,11 @@ function UpgradeSpinController:makeCard(reel: Instance, item: any, index: number
 	rarity.Text = string.upper(item.rarity)
 	rarity.Parent = card
 
+	self:makeBadge(card, item)
+
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, -10, 0, 44)
-	label.Position = UDim2.new(0, 5, 0, 30)
+	label.Size = UDim2.new(1, -10, 0, 36)
+	label.Position = UDim2.new(0, 5, 0, 84)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBold
 	label.TextSize = 16
@@ -185,8 +218,8 @@ function UpgradeSpinController:makeCard(reel: Instance, item: any, index: number
 	label.Parent = card
 
 	local desc = Instance.new("TextLabel")
-	desc.Size = UDim2.new(1, -10, 0, 60)
-	desc.Position = UDim2.new(0, 5, 1, -64)
+	desc.Size = UDim2.new(1, -10, 0, 44)
+	desc.Position = UDim2.new(0, 5, 1, -48)
 	desc.BackgroundTransparency = 1
 	desc.Font = Enum.Font.Gotham
 	desc.TextSize = 13

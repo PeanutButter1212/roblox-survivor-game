@@ -6,15 +6,21 @@ local RandomUtil = {}
 
 -- Picks one entry from an ordered list using each entry's `weight` field.
 -- Higher weight = more likely. Returns the chosen entry (the table itself).
-function RandomUtil.weightedPick<T>(entries: { T & { weight: number } }): T
+--
+-- The list is typed as plain `{ T }` and `weight` is read through a cast on purpose:
+-- spelling the constraint as `T & { weight: number }` makes the solver reject every
+-- real caller, because a table with other fields is never *exactly* that intersection.
+-- Callers must still put a numeric `weight` on every entry; since the typechecker can no
+-- longer enforce that, a missing one is treated as 0 rather than throwing on `nil`.
+function RandomUtil.weightedPick<T>(entries: { T }): T
 	local total = 0
 	for _, entry in entries do
-		total += entry.weight
+		total += (entry :: any).weight or 0
 	end
 
 	local roll = math.random() * total
 	for _, entry in entries do
-		roll -= entry.weight
+		roll -= (entry :: any).weight or 0
 		if roll <= 0 then
 			return entry
 		end
