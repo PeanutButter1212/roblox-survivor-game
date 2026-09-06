@@ -10,6 +10,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Weapons = require(Shared:WaitForChild("data"):WaitForChild("Weapons"))
+local Pets = require(Shared:WaitForChild("data"):WaitForChild("Pets"))
 
 local PlayerProfile = Class.new()
 
@@ -48,6 +49,8 @@ function PlayerProfile.new(player: Player)
 	self.coins = 0 -- soft currency earned by clearing stages (persisted)
 	self.maxStageCleared = 0 -- highest stage number ever cleared; gates stage selection
 	self.skills = { health = 0, speed = 0, damage = 0 } :: { [string]: number } -- lobby skill-tree levels (persisted)
+	self.pets = {} :: { [string]: number } -- petId -> how many hatched (persisted)
+	self.equipped = {} :: { string } -- petIds currently following, capped at Pets.MaxEquipped
 	self.lastClaimDay = 0 -- UTC day index of the last daily-bonus claim (persisted)
 	self.dailyStreak = 0 -- consecutive-day login streak (persisted)
 	-- Level-up upgrade flow state (managed by ProgressionService): how many level-ups
@@ -189,16 +192,18 @@ function PlayerProfile:getStage(): number
 	return self.stage
 end
 
--- Selects which stage the portal launches, clamped to [1, highest cleared + 1] so a
--- player can replay anything they've beaten (to farm coins) and step one stage past it
--- into new content, but never skip ahead. Replicates the choice for the HUD.
+-- Selects which stage the portal launches, clamped to whatever the player may currently
+-- reach (normally 1 .. highest cleared + 1, or the whole ladder while
+-- GameConfig.Progression.UnlockAllStages is on). Still clamped server-side either way, so
+-- a client asking for stage 900 gets the ceiling rather than the stage. Replicates the
+-- choice for the HUD.
 function PlayerProfile:setStage(stageNumber: number)
 	-- Reachable from a RemoteEvent and from a loaded save, so re-check here rather than
 	-- trusting the caller: math.clamp passes fractions and NaN straight through.
 	if stageNumber ~= stageNumber then
 		return
 	end
-	local maxSelectable = self.maxStageCleared + 1
+	local maxSelectable = GameConfig.highestSelectableStage(self.maxStageCleared)
 	self.stage = math.clamp(math.floor(stageNumber), 1, maxSelectable)
 	self.player:SetAttribute("Stage", self.stage)
 end
@@ -250,6 +255,53 @@ end
 function PlayerProfile:incrementSkill(pathId: string)
 	self.skills[pathId] = (self.skills[pathId] or 0) + 1
 	self.player:SetAttribute("Skill_" .. pathId, self.skills[pathId])
+end
+
+-- How many of each pet the player has hatched, keyed by pet id.
+function PlayerProfile:getPets(): { [string]: number }
+	return self.pets
+end
+
+-- The pet ids currently following the player, in slot order.
+function PlayerProfile:getEquipped(): { string }
+	return self.equipped
+end
+
+-- Whether the player owns at least one of `petId`.
+function PlayerProfile:ownsPet(petId: string): boolean
+	return (self.pets[petId] or 0) > 0
+end
+
+-- Records a hatched pet, equipping it automatically while there's a free slot so a
+-- first-time hatch visibly does something.
+function PlayerProfile:addPet(petId: string)
+	self.pets[petId] = (self.pets[petId] or 0) + 1
+	if #self.equipped < Pets.MaxEquipped and not table.find(self.equipped, petId) then
+		table.insert(self.equipped, petId)
+	end
+end
+
+-- Equips a pet the player owns. Returns false (changing nothing) if they don't own it,
+-- it's already out, or every slot is full — the caller reports that back to the client.
+function PlayerProfile:equipPet(petId: string): boolean
+	if not self:ownsPet(petId) or table.find(self.equipped, petId) then
+		return false
+	end
+	if #self.equipped >= Pets.MaxEquipped then
+		return false
+	end
+	table.insert(self.equipped, petId)
+	return true
+end
+
+-- Removes a pet from the active slots. Returns whether anything changed.
+function PlayerProfile:unequipPet(petId: string): boolean
+	local index = table.find(self.equipped, petId)
+	if not index then
+		return false
+	end
+	table.remove(self.equipped, index)
+	return true
 end
 
 -- The UTC day index of the player's most recent daily-bonus claim (0 if never).
@@ -340,6 +392,8 @@ function PlayerProfile:serialize(): any
 		skills = skills,
 		lastClaimDay = self.lastClaimDay,
 		dailyStreak = self.dailyStreak,
+		pets = table.clone(self.pets),
+		equipped = table.clone(self.equipped),
 		stats = {
 			damageMult = self.stats.damageMult,
 			fireRateMult = self.stats.fireRateMult,
@@ -369,6 +423,22 @@ function PlayerProfile:load(data: any)
 	-- Skill levels are restored only as counters: their stat buffs were already baked
 	-- into `stats` when purchased (and are restored with it below), so re-applying here
 	-- would double-count.
+	-- Pets are validated against the current bestiary on load: a pet removed from
+	-- data/Pets shouldn't resurrect as an unbuildable id in someone's slots.
+	if type(data.pets) == "table" then
+		for petId, count in data.pets do
+			if Pets.fromId(petId) and type(count) == "number" then
+				self.pets[petId] = count
+			end
+		end
+	end
+	if type(data.equipped) == "table" then
+		for _, petId in data.equipped do
+			if #self.equipped < Pets.MaxEquipped and self:ownsPet(petId) then
+				table.insert(self.equipped, petId)
+			end
+		end
+	end
 	if type(data.skills) == "table" then
 		for pathId, level in data.skills do
 			self.skills[pathId] = level

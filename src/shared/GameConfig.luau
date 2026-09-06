@@ -54,7 +54,22 @@ GameConfig.Progression = {
 	BaseXPToLevel = 20,
 	XPGrowth = 1.35, -- each level needs this much more XP than the last
 	UpgradeOptions = 3, -- how many choices the slot machine offers per level
+	-- Normally the picker offers stage 1 .. highest cleared + 1. Turning this on opens
+	-- every stage up to StageCeiling instead, which is what you want while testing a
+	-- late-stage map without grinding nine clears to see it. Stages are endless, so an
+	-- "all stages" list still needs a bound.
+	UnlockAllStages = true,
+	StageCeiling = 30,
 }
+
+-- The highest stage a player may currently select, given how far they've cleared. Server
+-- and client both go through this so the picker can't show a stage the server refuses.
+function GameConfig.highestSelectableStage(maxStageCleared: number): number
+	if GameConfig.Progression.UnlockAllStages then
+		return GameConfig.Progression.StageCeiling
+	end
+	return maxStageCleared + 1
+end
 
 -- Coin economy. Coins are the soft currency earned by clearing stages and spent in the
 -- lobby skill tree. First clears pay full; replaying a beaten stage pays a fraction, so
