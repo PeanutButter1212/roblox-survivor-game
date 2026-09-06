@@ -23,7 +23,14 @@ end
 
 -- Creates and starts a run. `combat` is the shared CombatService; `onKill(player, xp)`
 -- routes enemy kills into XP (the server wires it to ProgressionService).
-function StageInstance.new(player: Player, profile: any, config: any, origin: Vector3, combat: any, onKill: (Player, number) -> ())
+function StageInstance.new(
+	player: Player,
+	profile: any,
+	config: any,
+	origin: Vector3,
+	combat: any,
+	onKill: (Player, number) -> ()
+)
 	local self = setmetatable({}, StageInstance)
 	self.player = player
 	self.profile = profile

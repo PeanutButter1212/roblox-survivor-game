@@ -279,10 +279,8 @@ function SkillTreeController:showDetail(path: any, level: number)
 	local tag = if Skills.isSuperLevel(level) then " ⭐SUPER" else ""
 	local effect = path.format(Skills.bonusFor(path, level))
 	local cost = Skills.costFor(level)
-	self.detail.Text = string.format(
-		"%s · Lvl %d%s — %s — cost 🪙%d — [%s]",
-		path.label, level, tag, effect, cost, state
-	)
+	self.detail.Text =
+		string.format("%s · Lvl %d%s — %s — cost 🪙%d — [%s]", path.label, level, tag, effect, cost, state)
 end
 
 -- Repaints every branch and the coin total from the current Attributes: fills each spine

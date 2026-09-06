@@ -42,8 +42,7 @@ function EnemyManager:spawnOne(target: Target, maxAlive: number, elapsed: number
 		return
 	end
 	local angle = math.random() * math.pi * 2
-	local pos = target.root.Position
-		+ Vector3.new(math.cos(angle), 0, math.sin(angle)) * GameConfig.Enemies.SpawnRadius
+	local pos = target.root.Position + Vector3.new(math.cos(angle), 0, math.sin(angle)) * GameConfig.Enemies.SpawnRadius
 	pos = self.arena:clampToBounds(pos)
 
 	local hp = self.config.enemyHealth
