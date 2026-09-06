@@ -30,6 +30,7 @@ function LevelManager.new(progression: any, stageService: any)
 	self:buildLobby()
 	self:buildPortal()
 	self:buildStageSelector()
+	self:buildEggStand()
 
 	-- The stage-select UI sends the player's chosen stage here; the profile clamps the
 	-- range. Type alone isn't enough: a fraction or a NaN survives math.clamp and then
@@ -373,6 +374,29 @@ function LevelManager:buildStageSelector()
 	click.Parent = board
 	click.MouseClick:Connect(function(player)
 		Remotes.get("OpenStageSelect"):FireClient(player)
+	end)
+end
+
+-- Builds the egg stand on the other side of the portal from the stage picker. Clicking it
+-- opens that player's pet shop; everything it can do is validated in PetService.
+function LevelManager:buildEggStand()
+	local board = Instance.new("Part")
+	board.Name = "EggStandBoard"
+	board.Anchored = true
+	board.Size = Vector3.new(1, 7, 8)
+	board.Position = GameConfig.World.PortalPosition + Vector3.new(-14, 0.5, 0)
+	board.Material = Enum.Material.SmoothPlastic
+	board.Color = Color3.fromRGB(44, 28, 50)
+	board.Parent = self.folder
+
+	LobbyDecor.frameBoard(board, Color3.fromRGB(210, 140, 255))
+	self:buildSign(board, "PET EGGS", "Click to hatch a companion", Color3.fromRGB(230, 200, 255))
+
+	local click = Instance.new("ClickDetector")
+	click.MaxActivationDistance = 32
+	click.Parent = board
+	click.MouseClick:Connect(function(player)
+		Remotes.get("OpenPetShop"):FireClient(player)
 	end)
 end
 

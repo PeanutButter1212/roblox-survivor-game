@@ -32,6 +32,8 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 | `Enemy` | One enemy: assembles its brainrot's body from `data/Enemies`, health, movement (CFrame-driven), damage feedback, contact cooldown. |
 | `CoinManager` | Coin pickups for **one** stage instance: drops, bobbing, magnet-to-player, expiry. Bound to one profile so a drop can only pay its owner. |
 | `CombatService` | Stateless. Fires one player's auto-weapons at enemies in their own instance. |
+| `PetService` | Every player's pets: what they've hatched, which are equipped, the live models, and both hatch paths (coins and Robux). Owns `ProcessReceipt`. |
+| `Pet` | One live companion: model, orbit around its owner, attack timer. |
 | `ProgressionService` | Registry of PlayerProfiles + level-up/upgrade logic. Queues picks, freezes the run, applies the choice, unfreezes. |
 | `PlayerProfile` | One player's progression: XP, level, stat multipliers, owned weapons, lobby/level flag, skill levels, coins. |
 | `LevelManager` | Builds the lobby room (floor, walls, spawn dais), the portal arch and the stage-select station. Touching the portal starts a run. Exposes `update(dt)` for the portal swirl. |
@@ -47,12 +49,14 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 `UpgradeSpinController` (the three reels) · `SkillTreeController` (the visual node tree) ·
 `StageSelectController` (picker + portal door display) · `DailyBonusController` (toast) ·
 `AtmosphereController` (Lighting: lobby preset + each stage's mood) ·
+`PetShopController` (eggs, published odds, collection) ·
 `Icons` (UI icons drawn from Frames — nothing here can upload an image asset).
 
 ### `src/shared` → ReplicatedStorage.Shared
 `GameConfig` (world layout, ramp, coin economy, daily rewards) · `Remotes` (server creates
 the RemoteEvents, client waits for them) · `util/` (`Class`, `RandomUtil`) ·
-`data/` (`Stages`, `Skills`, `Upgrades`, `Weapons`, `Rarities`, `Enemies`, `Arenas`).
+`data/` (`Stages`, `Skills`, `Upgrades`, `Weapons`, `Rarities`, `Enemies`, `Arenas`,
+`Pets`, `Eggs`).
 
 Instance mapping lives in `default.project.json`.
 
@@ -76,6 +80,14 @@ Instance mapping lives in `default.project.json`.
 - **Lighting is client-side.** `Lighting` is one shared instance but every player is on
   their own stage, so a server-side change drags everyone into one player's weather. Stage
   moods live on the theme (`data/Arenas`) and are applied by `AtmosphereController`.
+- **Gacha odds are derived, never written.** `Eggs.odds` computes percentages from the
+  same weights `Eggs.roll` uses, and the shop UI renders that. Roblox requires the odds of
+  paid random items to be disclosed, so a second hand-maintained copy that could drift is
+  not acceptable. Never hardcode a percentage.
+- **`ProcessReceipt` grants, then saves, then reports.** It may only return
+  `PurchaseGranted` once the pet is persisted; anything else returns `NotProcessedYet` so
+  Roblox re-delivers the receipt. Returning granted early means a player pays and keeps
+  nothing.
 - **The lobby is one fixed room.** It's shared, so it can't take a per-player theme the way
   an arena does. Its palette and dimensions are `GameConfig.Lobby` / `GameConfig.World`.
 - **One Heartbeat loop**, in `init.server.luau`. Do not add `RunService` loops elsewhere;

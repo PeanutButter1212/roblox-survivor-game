@@ -14,6 +14,7 @@ local UpgradeSpinController = require(script:WaitForChild("UpgradeSpinController
 local SkillTreeController = require(script:WaitForChild("SkillTreeController"))
 local DailyBonusController = require(script:WaitForChild("DailyBonusController"))
 local StageSelectController = require(script:WaitForChild("StageSelectController"))
+local PetShopController = require(script:WaitForChild("PetShopController"))
 
 AtmosphereController.new(player)
 CameraController.new(player)
@@ -22,3 +23,4 @@ UpgradeSpinController.new(player)
 SkillTreeController.new(player)
 DailyBonusController.new(player)
 StageSelectController.new(player)
+PetShopController.new(player)

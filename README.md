@@ -50,6 +50,18 @@ your choice shows on the portal "door" (**▶ STAGE N**) before you touch it to 
 choose between grinding a beaten stage and pushing into the next one. Coins are spent in the
 lobby **skill tree** (below).
 
+**Pets:** a **PET EGGS** stand in the lobby opens the shop. Three eggs (Cracked, Golden,
+Cosmic) each roll one of eight companion brainrots — Frulli Frulla, Talpa Di Ferro,
+Orangutini Ananassini, Tigrilini Watermelini, Svinina Bombardino, La Vacca Saturnita,
+Graipuss Medussi, Garama Mandandanam. Up to **three pets follow you at once**, orbiting
+your character and auto-attacking whatever's nearest — a second gun that scales with your
+Damage skill. Every egg shows its **full drop table** in the shop.
+
+Eggs can be opened with **coins** (works immediately) or with **Robux** (needs setup, see
+below). The roll always happens on the server: the client asks to open an egg, never says
+what it got. Add a pet with a row in `data/Pets.luau` and an entry in an egg's pool in
+`data/Eggs.luau`.
+
 **Skill tree:** a clickable **board in the spawn area** opens a visual tree with three
 permanent **character** buff branches — **Max Health**, **Move Speed**, **Damage** (these
 buff your character, not your weapons). Each branch shows all **20 nodes** strung along a
@@ -80,6 +92,24 @@ DataStores. Roblox hosts all of this — no external backend.
   one or push the next — your choice shows on the portal door), and **click the SKILL TREE
   board** to spend coins on permanent character buffs.
 
+### Selling eggs for Robux (optional)
+
+The coin path works out of the box. To turn on the Robux path:
+
+1. On https://create.roblox.com, open your experience → **Monetization → Developer
+   Products**. Create one product per egg and set its Robux price there.
+2. Copy each product's numeric id into the matching row's `productId` in
+   `src/shared/data/Eggs.luau` (they start at `0`, which is what keeps the button
+   disabled). Set `robuxPrice` to match what you priced it at — that field is display only.
+3. That's it: `PetService` already handles the purchase receipt, and the shop's Robux
+   button turns on for any egg with a non-zero `productId`.
+
+Two things worth knowing. **The odds shown in the shop are computed from the same weights
+the server rolls with** — Roblox requires the chances of paid random items to be disclosed,
+so don't ever hand-write a percentage; change the weights and the published table follows.
+And **cashing out Robux** through DevEx has its own requirements (age, ID verification, a
+minimum balance) that are entirely on Roblox's side.
+
 ### Where to tune things
 - `src/shared/GameConfig.luau` — world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards and kill drops** (`GameConfig.Coins`), **lobby size and palette** (`GameConfig.World` / `GameConfig.Lobby`).
 - `src/shared/data/Arenas.luau` — also carries each theme's `mood` (the Lighting preset used while you're on that stage).
@@ -89,6 +119,9 @@ DataStores. Roblox hosts all of this — no external backend.
 - `src/shared/data/Rarities.luau` — rarity odds, power multipliers, colors.
 - `src/shared/data/Weapons.luau` — weapon stats and reel icons (add a gun = add a row).
 - `src/shared/data/Upgrades.luau` — upgrade archetypes, icons and tints (add an upgrade = add a row).
+- `src/shared/data/Pets.luau` — companion stats and bodies (add a pet = add a row); `Pets.MaxEquipped` sets how many follow you.
+- `src/shared/data/Eggs.luau` — egg prices, Robux product ids, and drop pools. Odds are derived from the weights.
+- `GameConfig.Progression.UnlockAllStages` — when true, the picker offers every stage up to `StageCeiling` instead of gating at your best clear. Handy for testing a late map without grinding to it.
 
 ## Project layout
 
@@ -96,8 +129,8 @@ Code is organised into small, documented OOP classes (one responsibility each).
 
 | Folder        | Syncs into Studio at          | What's there                                            |
 | ------------- | ----------------------------- | ------------------------------------------------------- |
-| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CoinManager, CombatService, ProgressionService, PlayerProfile, LevelManager, LobbyDecor, LobbyGallery, DataService, SkillTreeService, DailyRewardService |
-| `src/client`  | StarterPlayerScripts > Client | Controllers: AtmosphereController, CameraController, HudController, UpgradeSpinController, SkillTreeController, DailyBonusController, StageSelectController; plus `Icons` (UI icons drawn from Frames) |
+| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CoinManager, CombatService, ProgressionService, PlayerProfile, LevelManager, LobbyDecor, LobbyGallery, PetService, Pet, DataService, SkillTreeService, DailyRewardService |
+| `src/client`  | StarterPlayerScripts > Client | Controllers: AtmosphereController, CameraController, HudController, UpgradeSpinController, SkillTreeController, DailyBonusController, StageSelectController, PetShopController; plus `Icons` (UI icons drawn from Frames) |
 | `src/shared`  | ReplicatedStorage > Shared    | `GameConfig`, `Remotes`, `util/` (Class, RandomUtil), `data/` (Rarities, Weapons, Upgrades, Skills, Stages, Enemies, Arenas) |
 
 Mapping is defined in `default.project.json`.

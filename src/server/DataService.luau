@@ -48,11 +48,13 @@ function DataService:load(player: Player)
 	end
 end
 
--- Saves a player's progression.
-function DataService:save(player: Player)
+-- Saves a player's progression. Returns whether the write actually landed — the Robux
+-- purchase path needs to know, because it must not tell Roblox a purchase was granted
+-- until the thing it bought is safely persisted.
+function DataService:save(player: Player): boolean
 	local profile = self.progression:getProfile(player)
 	if not profile then
-		return
+		return false
 	end
 	local ok, err = pcall(function()
 		self.store:SetAsync(keyFor(player), profile:serialize())
@@ -60,6 +62,7 @@ function DataService:save(player: Player)
 	if not ok then
 		warn("[DataService] save failed for " .. player.Name .. ": " .. tostring(err))
 	end
+	return ok
 end
 
 -- Saves every connected player (used by autosave and on shutdown).

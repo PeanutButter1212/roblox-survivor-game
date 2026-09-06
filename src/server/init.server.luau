@@ -19,12 +19,14 @@ local DataService = require(script:WaitForChild("DataService"))
 local SkillTreeService = require(script:WaitForChild("SkillTreeService"))
 local DailyRewardService = require(script:WaitForChild("DailyRewardService"))
 local LobbyGallery = require(script:WaitForChild("LobbyGallery"))
+local PetService = require(script:WaitForChild("PetService"))
 
 local progression = ProgressionService.new()
 local combat = CombatService.new()
-local stageService = StageService.new(progression, combat)
-local level = LevelManager.new(progression, stageService)
 local dataService = DataService.new(progression)
+local pets = PetService.new(progression, dataService)
+local stageService = StageService.new(progression, combat, pets)
+local level = LevelManager.new(progression, stageService)
 local _skillTree = SkillTreeService.new(progression)
 local dailyReward = DailyRewardService.new(progression)
 local _gallery = LobbyGallery.new() -- the brainrot hall along the back of the lobby
@@ -35,6 +37,8 @@ local function onPlayerAdded(player: Player)
 	progression:setupPlayer(player)
 	dataService:load(player)
 	dailyReward:grantIfDue(player)
+	-- After the load, so their saved pets are the ones that get spawned.
+	pets:setupPlayer(player)
 end
 Players.PlayerAdded:Connect(onPlayerAdded)
 for _, player in Players:GetPlayers() do
@@ -45,6 +49,7 @@ end
 Players.PlayerRemoving:Connect(function(player)
 	stageService:onPlayerLeft(player)
 	dataService:save(player)
+	pets:removePlayer(player)
 	progression:removePlayer(player)
 end)
 
@@ -66,6 +71,7 @@ end)
 RunService.Heartbeat:Connect(function(dt)
 	stageService:update(dt)
 	level:update(dt)
+	pets:update(dt)
 end)
 
 print("[Server] Lobby ready. Each player gets their own arena and stage progression.")
