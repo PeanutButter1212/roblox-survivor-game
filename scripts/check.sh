@@ -29,6 +29,13 @@ done
 
 LUAU_LSP="${LUAU_LSP:-$HOME/.local/bin/luau-lsp}"
 DEFS=".luau/globalTypes.d.luau"
+# Pin the type definitions to the luau-lsp that reads them. Tracking the definitions repo's
+# main branch meant the typechecker was pinned but its input wasn't: an upstream definitions
+# change could turn CI red on a file nobody touched, while a developer whose copy was
+# downloaded months ago still passed locally. Keep this in step with the version installed
+# by scripts/setup.sh and by .github/workflows/verify.yml.
+DEFS_TAG="${DEFS_TAG:-1.69.0}"
+DEFS_STAMP=".luau/globalTypes.tag"
 FAILED=()
 
 hdr() { printf '\n\033[1m== %s ==\033[0m\n' "$1"; }
@@ -40,19 +47,27 @@ need() {
 	command -v "$1" >/dev/null 2>&1 || { echo "missing tool: $1 — run scripts/setup.sh" >&2; exit 2; }
 }
 need stylua; need selene; need rojo
-[ -x "$LUAU_LSP" ] || { echo "missing tool: luau-lsp — run scripts/setup.sh" >&2; exit 2; }
+# Fall back to PATH so this doesn't depend on luau-lsp living in one exact directory —
+# the other three tools are resolved that way, and CI shouldn't break by installing
+# somewhere else.
+[ -x "$LUAU_LSP" ] || LUAU_LSP="$(command -v luau-lsp || true)"
+[ -n "$LUAU_LSP" ] && [ -x "$LUAU_LSP" ] \
+	|| { echo "missing tool: luau-lsp — run scripts/setup.sh" >&2; exit 2; }
 
 # --- bootstrap generated artifacts (gitignored, regenerated on demand) -------------
 if [ ! -f roblox.yml ]; then
 	note "generating selene Roblox standard library (roblox.yml)"
 	selene generate-roblox-std >/dev/null || { echo "could not generate roblox.yml (needs network)" >&2; exit 2; }
 fi
-if [ ! -f "$DEFS" ]; then
-	note "downloading Roblox type definitions ($DEFS)"
+# Re-download when the pin moves, not just when the file is missing, or a stale copy from
+# an older pin would silently keep being used.
+if [ ! -f "$DEFS" ] || [ "$(cat "$DEFS_STAMP" 2>/dev/null || echo none)" != "$DEFS_TAG" ]; then
+	note "downloading Roblox type definitions ($DEFS @ $DEFS_TAG)"
 	mkdir -p .luau
-	curl -sfL -o "$DEFS" \
-		https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau \
+	curl -sfL --retry 3 --retry-all-errors -o "$DEFS" \
+		"https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/${DEFS_TAG}/scripts/globalTypes.d.luau" \
 		|| { echo "could not download $DEFS (needs network)" >&2; exit 2; }
+	printf '%s' "$DEFS_TAG" > "$DEFS_STAMP"
 fi
 # The sourcemap tells luau-lsp how src/ maps onto the Roblox instance tree, so it can
 # resolve `require(script:WaitForChild("Foo"))`. Cheap — always regenerate.

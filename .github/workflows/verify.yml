@@ -27,7 +27,7 @@ env:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # pinned for the same reason the tools are
     steps:
       - uses: actions/checkout@v4
 
@@ -48,6 +48,9 @@ jobs:
             unzip -oq /tmp/tool.zip -d /tmp/tool
             find /tmp/tool -type f -name "$2" -exec install -m755 {} "$HOME/.local/bin/$2" \;
             rm -rf /tmp/tool /tmp/tool.zip
+            # find exits 0 when nothing matched, so set -e can't catch a renamed binary
+            # inside an otherwise valid archive. Fail here, naming the tool.
+            test -x "$HOME/.local/bin/$2" || { echo "$2 not found in its archive"; exit 1; }
           }
           fetch "https://github.com/JohnnyMorganz/StyLua/releases/download/${STYLUA_VERSION}/stylua-linux-x86_64.zip" stylua
           fetch "https://github.com/Kampfkarren/selene/releases/download/${SELENE_VERSION}/selene-${SELENE_VERSION}-linux.zip" selene
@@ -57,6 +60,16 @@ jobs:
       - name: Add tools to PATH
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+      # The generated typecheck/lint inputs. Cached so a run doesn't depend on two
+      # networked downloads, and so CI keeps using the same definitions between runs.
+      - name: Cache generated definitions
+        uses: actions/cache@v4
+        with:
+          path: |
+            .luau
+            roblox.yml
+          key: defs-${{ env.LUAU_LSP_VERSION }}-${{ env.SELENE_VERSION }}
+
       - name: Report tool versions
         run: |
           stylua --version
@@ -64,7 +77,9 @@ jobs:
           rojo --version
           luau-lsp --version
 
-      # check.sh generates roblox.yml and .luau/globalTypes.d.luau itself on first run;
-      # both are gitignored and need network, which the runner has.
+      # check.sh generates roblox.yml and .luau/globalTypes.d.luau itself when they're
+      # missing; both are gitignored, and the cache above usually supplies them.
       - name: Run the gate
+        env:
+          DEFS_TAG: ${{ env.LUAU_LSP_VERSION }}
         run: scripts/check.sh
