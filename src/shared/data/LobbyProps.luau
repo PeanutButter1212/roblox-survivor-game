@@ -13,15 +13,21 @@ local C = Color3.fromRGB
 local BALL = Enum.PartType.Ball
 local CYL = Enum.PartType.Cylinder
 
-export type Prop = { id: string, weight: number, pieces: { PieceUtil.Spec } }
+-- `radius` is the prop's footprint on the floor, used to keep them off each other. Same
+-- shape as data/Arenas' obstacles.
+export type Prop = { id: string, weight: number, radius: number, pieces: { PieceUtil.Spec } }
 
 local LobbyProps = {}
 
-LobbyProps.Density = 2.2 -- props per 10,000 studs² of floor
+-- Props per 10,000 studs² of floor. Much higher than an arena's 2.8-3.4 because a lobby
+-- is a fraction of an arena's area: at 140 studs square this whole room is under two of
+-- those units, so an arena-like value would have dressed it with four objects.
+LobbyProps.Density = 22
 
 LobbyProps.List = {
 	{
 		id = "planter",
+		radius = 2.6,
 		weight = 30,
 		pieces = {
 			{
@@ -54,6 +60,7 @@ LobbyProps.List = {
 	},
 	{
 		id = "bench",
+		radius = 3.6,
 		weight = 24,
 		pieces = {
 			{
@@ -84,6 +91,7 @@ LobbyProps.List = {
 	},
 	{
 		id = "lamp",
+		radius = 1.4,
 		weight = 22,
 		pieces = {
 			{
@@ -108,6 +116,7 @@ LobbyProps.List = {
 	},
 	{
 		id = "banner",
+		radius = 2.6,
 		weight = 18,
 		pieces = {
 			{
@@ -133,6 +142,7 @@ LobbyProps.List = {
 	},
 	{
 		id = "crates",
+		radius = 2.2,
 		weight = 20,
 		pieces = {
 			{
@@ -158,6 +168,7 @@ LobbyProps.List = {
 	},
 	{
 		id = "rug",
+		radius = 4.2,
 		weight = 16,
 		pieces = {
 			{

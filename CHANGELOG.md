@@ -21,6 +21,7 @@ out toward the walls instead of clustering in the middle. Scattered decoration (
 benches, lamps, banners, crates, rugs) fills the new space, and two oversized brainrot
 statues flank the walk from the spawn ring to the portal. The three data modules that
 described a model piece now share one type instead of each keeping a copy.
+
 ## v2.11 — Faster nearest-enemy queries
 getNearest kept a table per candidate and sorted the whole swarm, on the hottest path in
 the game. It now keeps a top-k list by insertion on squared distances: no sort, and a fixed

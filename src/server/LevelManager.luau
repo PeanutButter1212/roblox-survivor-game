@@ -1,7 +1,8 @@
 --!strict
 -- LevelManager.luau
--- Builds the lobby room (floor, walls, spawn dais), the portal players step through, and
--- the stage-select station beside it. Touching the portal teleports the player into their
+-- Builds the lobby: the room (floor, walls, spawn dais), the portal players step through,
+-- the stage-select station beside it, the two oversized brainrot statues flanking the walk
+-- to the portal, and the scattered decoration filling the rest of the floor. Touching the portal teleports the player into their
 -- arena and flips their profile to in-level, which is what starts enemies/combat for them.
 --
 -- The lobby is one fixed room rather than a themed one: it's shared by everyone, so it
@@ -115,7 +116,7 @@ function LevelManager:buildLobby()
 	self:buildSpawnDais(center, palette)
 end
 
--- Lays an inset border and a spawn ring into the floor. Flat colour over 90x90 studs
+-- Lays an inset border and a spawn ring into the floor. Flat colour over 140x140 studs
 -- reads as a void; these give the eye something to measure the room against.
 function LevelManager:buildFloorInlay(center: Vector3, half: number, palette: any)
 	local y = center.Y + 0.55
@@ -392,8 +393,11 @@ function LevelManager:keepOutZones(): { { x: number, z: number, radius: number }
 		{ x = 0, z = portalZ, radius = 20 }, -- portal and its arch
 		{ x = 14, z = portalZ, radius = 13 }, -- stage-select station
 		{ x = -48, z = 0, radius = 15 }, -- skill tree board
-		{ x = -16, z = portalZ / 2, radius = 13 }, -- guardian statues
-		{ x = 16, z = portalZ / 2, radius = 13 },
+		-- 20, not 13: at 13 these two circles don't meet on the centre line, leaving a
+		-- pocket right on the walk from the spawn ring to the portal where a lamp or
+		-- banner could stand. Widened so they overlap at x = 0.
+		{ x = -16, z = portalZ / 2, radius = 20 }, -- guardian statues
+		{ x = 16, z = portalZ / 2, radius = 20 },
 		{ x = 52, z = -20, radius = 13 }, -- egg pedestals
 		{ x = 52, z = 0, radius = 13 },
 		{ x = 52, z = 20, radius = 13 },
@@ -417,33 +421,54 @@ function LevelManager:buildProps()
 	folder.Name = "Decor"
 	folder.Parent = self.folder
 
-	local count = math.floor(LobbyProps.Density * GameConfig.World.LobbySize ^ 2 / 10000)
+	local area = GameConfig.World.LobbySize * GameConfig.World.LobbySize
+	local count = math.floor(LobbyProps.Density * area / 10000)
+	local placed = {} :: { { x: number, z: number, radius: number } }
+
 	for _ = 1, count do
-		for _ = 1, 12 do
+		local prop = RandomUtil.weightedPick(LobbyProps.List)
+		for _ = 1, 14 do
 			local x = (math.random() * 2 - 1) * limit
 			local z = (math.random() * 2 - 1) * limit
-			if z < galleryZ then
-				local clear = true
-				for _, zone in zones do
-					local dx, dz = x - zone.x, z - zone.z
-					if dx * dx + dz * dz < zone.radius * zone.radius then
-						clear = false
-						break
-					end
+			if z < galleryZ and self:isSpotClear(x, z, prop.radius, zones, placed) then
+				local base = CFrame.new(center + Vector3.new(x, 0.5, z))
+					* CFrame.Angles(0, math.random() * math.pi * 2, 0)
+				for _, piece in prop.pieces do
+					local part = Piece.build(piece, base, 0)
+					part.Parent = folder
 				end
-				if clear then
-					local prop = RandomUtil.weightedPick(LobbyProps.List)
-					local base = CFrame.new(center + Vector3.new(x, 0.5, z))
-						* CFrame.Angles(0, math.random() * math.pi * 2, 0)
-					for _, piece in prop.pieces do
-						local part = Piece.build(piece, base, 0)
-						part.Parent = folder
-					end
-					break
-				end
+				table.insert(placed, { x = x, z = z, radius = prop.radius })
+				break
 			end
 		end
 	end
+end
+
+-- Whether a prop of `radius` fits at a lobby-local spot: clear of every station, and clear
+-- of everything already placed. The second half matters as much as the first — two rugs
+-- three studs apart z-fight, and a bench inside a planter reads as broken, not as decor.
+function LevelManager:isSpotClear(
+	x: number,
+	z: number,
+	radius: number,
+	zones: { { x: number, z: number, radius: number } },
+	placed: { { x: number, z: number, radius: number } }
+): boolean
+	for _, zone in zones do
+		local dx, dz = x - zone.x, z - zone.z
+		local minimum = zone.radius + radius
+		if dx * dx + dz * dz < minimum * minimum then
+			return false
+		end
+	end
+	for _, other in placed do
+		local dx, dz = x - other.x, z - other.z
+		local minimum = other.radius + radius + 2 -- a little air between them
+		if dx * dx + dz * dz < minimum * minimum then
+			return false
+		end
+	end
+	return true
 end
 
 -- Two oversized brainrots flanking the walk from the spawn ring to the portal. The gallery

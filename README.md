@@ -76,7 +76,7 @@ would drag every player into one player's weather.
 A 140-stud walled room: inlaid floor, a glowing spawn ring, lit corner pillars, and the
 portal built as an arch with a ring turning inside it. Two **oversized brainrot statues**
 flank the walk from the spawn ring to the portal, and the floor is scattered with planters,
-benches, lamps, banners and crates. Three
+benches, lamp posts, banners, crate stacks and rugs. Three
 stations are framed and lit in their own colours so you can tell them apart at a glance —
 **SELECT STAGE**, **SKILL TREE**, and the **egg pedestals**.
 
