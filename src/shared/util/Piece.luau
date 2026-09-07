@@ -18,6 +18,7 @@ export type Spec = {
 	shape: Enum.PartType?,
 	rot: Vector3?,
 	material: Enum.Material?,
+	transparency: number?,
 }
 
 -- Creates the part, positioned and oriented, but deliberately NOT parented: the caller
@@ -39,6 +40,7 @@ function Piece.build(spec: Spec, base: CFrame, baseOffset: number, scale: number
 	part.Size = spec.size * factor
 	part.Color = spec.color
 	part.Material = spec.material or Enum.Material.SmoothPlastic
+	part.Transparency = spec.transparency or 0
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanQuery = false

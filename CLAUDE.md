@@ -10,7 +10,8 @@ Players spawn in a shared **lobby**. A **SELECT STAGE** board picks which stage 
 drops the player into their **own private arena** built far away in the same server —
 camera goes top-down, a survival timer starts, **brainrot characters** spawn and chase, and
 the player's weapons auto-fire at the nearest one. Each stage has its own themed map.
-Kills drop XP and sometimes **coins** you hoover up by walking near them; on level-up
+Kills drop a **blue XP orb** and sometimes a **coin**, both of which have to be walked to —
+the orb pulls in from a shorter distance than the coin does; on level-up
 **the run pauses and the player is pinned in place** while three vertical slot-machine
 reels each land on a rarity-rolled upgrade to pick from.
 Surviving to 0:00 clears the stage and pays **coins** (full on first clear, a fraction on

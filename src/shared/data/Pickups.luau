@@ -22,6 +22,10 @@ export type PickupDef = {
 	bobHeight: number,
 	bobSpeed: number,
 	spinSpeed: number, -- radians/second about Y
+	-- If set, a drop further than this from the player is pulled in along the line to
+	-- them. Without it, anything killed at range leaves XP that is unreachable by
+	-- construction rather than by choice.
+	maxDropDistance: number?,
 	lightColor: Color3?,
 	body: { any },
 }
@@ -40,6 +44,7 @@ Pickups.List = {
 		bobHeight = 0.35,
 		bobSpeed = 3.2,
 		spinSpeed = 3.0,
+		maxDropDistance = nil, -- a coin's reach already covers every engagement distance
 		lightColor = nil,
 		-- A gold disc lying face-up: the camera is top-down, so the flat face is the side
 		-- players actually see. The raised notch is what makes the spin legible.
@@ -84,7 +89,14 @@ Pickups.List = {
 		bobHeight = 0.3,
 		bobSpeed = 2.6,
 		spinSpeed = 1.6,
-		lightColor = C(90, 170, 255),
+		-- Ranged brainrots hold a 25-35 stud standoff and never close, so their orbs would
+		-- land outside the 16-stud magnet every single time — a flat forfeit rather than
+		-- the trade this reach is meant to create. Pulling distant drops in to 22 keeps
+		-- the walk without making whole enemy types pay nothing.
+		maxDropDistance = 22,
+		-- No PointLight: 90 live orbs would mean 90 lights in one arena, per player. The
+		-- Neon core already glows, and lights past roughly a dozen start misbehaving.
+		lightColor = nil,
 		-- A bright core inside a soft halo, so it reads as a glow rather than a marble.
 		body = {
 			{
@@ -100,6 +112,7 @@ Pickups.List = {
 				color = C(70, 140, 255),
 				shape = BALL,
 				material = Enum.Material.Neon,
+				transparency = 0.55, -- a halo, so the core reads as a glow not a marble
 			},
 		},
 	},

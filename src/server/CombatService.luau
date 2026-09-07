@@ -54,7 +54,7 @@ function CombatService:fireWeapon(
 	local damage = Weapons.scaledDamage(def, owned.power) * profile.stats.damageMult
 	for _, enemy in targets do
 		tracer(origin, enemy:getPosition())
-		enemyManager:damageEnemy(enemy, damage, profile.player)
+		enemyManager:damageEnemy(enemy, damage)
 	end
 end
 

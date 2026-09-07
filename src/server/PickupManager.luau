@@ -34,6 +34,7 @@ function PickupManager.new(parentFolder: Instance, groundY: number, handlers: { 
 	self.handlers = handlers
 	self.items = {} :: { any }
 	self.counts = {} :: { [string]: number } -- live count per kind, against each one's cap
+	self.playerPos = nil :: Vector3? -- last known, for pulling distant drops within reach
 	return self
 end
 
@@ -56,15 +57,10 @@ function PickupManager:buildModel(def: any, position: Vector3): (Model, BasePart
 	root.Parent = model
 	model.PrimaryPart = root
 
-	for index, piece in def.body do
+	for _, piece in def.body do
 		local part = Piece.build(piece, root.CFrame, 0)
 		part.Anchored = false
 		part.Massless = true
-		-- The halo on an XP orb is the second piece; letting it sit slightly see-through
-		-- is what stops it reading as a solid marble.
-		if index > 1 and def.id == "xp" then
-			part.Transparency = 0.55
-		end
 		part.Parent = model
 
 		local weld = Instance.new("WeldConstraint")
@@ -84,22 +80,47 @@ function PickupManager:buildModel(def: any, position: Vector3): (Model, BasePart
 	return model, root
 end
 
--- Drops `value` of `kindId` at `position`. Past that kind's cap the drop is skipped rather
--- than queued: the player walked away from the ones already out.
+-- Retires the longest-lived pickup of a kind. `items` is append-ordered, so the first
+-- live match is the oldest.
+function PickupManager:retireOldest(kindId: string)
+	for _, item in self.items do
+		if not item.dead and item.def.id == kindId then
+			self:retire(item)
+			return
+		end
+	end
+end
+
+-- Drops `value` of `kindId` at `position`.
+--
+-- At the cap it evicts the oldest of that kind rather than discarding the new one. That
+-- matters most for XP: a player kiting a late stage can leave a long trail of uncollected
+-- orbs, and skipping new drops would silently stop paying XP for kills happening at their
+-- feet. A stale orb across the arena is worth less than a fresh one underfoot.
+--
+-- A drop further than the kind's maxDropDistance is pulled along the line toward the
+-- player, so enemies that die at range still leave something that can actually be reached.
 function PickupManager:drop(kindId: string, position: Vector3, value: number)
 	local def = Pickups.fromId(kindId)
 	if not def or value <= 0 then
 		return
 	end
-	local live = self.counts[kindId] or 0
-	if live >= def.maxLive then
-		return
+	if (self.counts[kindId] or 0) >= def.maxLive then
+		self:retireOldest(kindId)
+	end
+
+	if def.maxDropDistance and self.playerPos then
+		local toPlayer = position - self.playerPos
+		local distance = toPlayer.Magnitude
+		if distance > def.maxDropDistance then
+			position = self.playerPos + toPlayer.Unit * def.maxDropDistance
+		end
 	end
 
 	local rest = Vector3.new(position.X, self.groundY + def.hover, position.Z)
 	local model, root = self:buildModel(def, rest)
 	model.Parent = self.folder
-	self.counts[kindId] = live + 1
+	self.counts[kindId] = (self.counts[kindId] or 0) + 1
 
 	table.insert(self.items, {
 		def = def,
@@ -114,13 +135,15 @@ function PickupManager:drop(kindId: string, position: Vector3, value: number)
 	})
 end
 
--- Pays out one pickup through its kind's handler and removes it.
+-- Pays out one pickup through its kind's handler and removes it. Retired FIRST: if a
+-- handler threw after payment but before removal, the pickup would still be inside pickup
+-- range next frame and would pay again, every frame, forever.
 function PickupManager:collect(item: any)
 	local handler = self.handlers[item.def.id]
+	self:retire(item)
 	if handler then
 		handler(item.value)
 	end
-	self:retire(item)
 end
 
 -- Destroys one pickup and frees its slot against the cap.
@@ -133,6 +156,7 @@ end
 -- Per-frame update. `target` is the same player root the enemies chase.
 function PickupManager:update(dt: number, target: any)
 	local playerPos = target.root.Position
+	self.playerPos = playerPos
 	local removed = false
 
 	for _, item in self.items do
@@ -190,6 +214,22 @@ function PickupManager:compact()
 		end
 	end
 	self.items = alive
+end
+
+-- Pays out every live pickup of `kindId`, then removes it. Used when a run is CLEARED:
+-- the timer expires at the densest moment of the stage, so simply binning the floor would
+-- mean the highest-kill-rate seconds of the whole run paid nothing.
+--
+-- Only safe for kinds whose handler has no side effects beyond a balance. XP deliberately
+-- isn't collected this way — its handler can trigger a level-up, which would raise an
+-- upgrade picker for a player who is already being returned to the lobby.
+function PickupManager:collectAll(kindId: string)
+	for _, item in self.items do
+		if not item.dead and item.def.id == kindId then
+			self:collect(item)
+		end
+	end
+	self:compact()
 end
 
 -- Destroys everything on the floor (used when the stage ends). Uncollected pickups are

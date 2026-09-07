@@ -61,7 +61,7 @@ function StageInstance.new(
 	})
 
 	-- A dead brainrot leaves its XP where it fell, plus any coins it was carrying.
-	self.enemyManager = EnemyManager.new(self.arena.folder, self.arena, config, function(_killer, xp, position, coins)
+	self.enemyManager = EnemyManager.new(self.arena.folder, self.arena, config, function(xp, position, coins)
 		self.pickups:drop("xp", position, xp)
 		self.pickups:drop("coin", position, coins)
 	end, function(from, direction, damage, color)
@@ -157,6 +157,11 @@ function StageInstance:finish(result: string)
 	self.active = false
 	self.enemyManager:clearAll()
 	self.projectiles:clearAll()
+	-- A clear banks the coins still on the floor; a failure doesn't. XP is never banked
+	-- this way — see PickupManager:collectAll for why.
+	if result == "Cleared" then
+		self.pickups:collectAll("coin")
+	end
 	self.pickups:clearAll()
 	-- Releases the shield, the movement pin AND the pick queue together. A player can
 	-- end a run mid-pick (reset, or the swarm finishing them the frame before), and any
@@ -188,6 +193,8 @@ end
 function StageInstance:destroy()
 	self.enemyManager:clearAll()
 	self.projectiles:clearAll()
+	-- No payout here: finish() has already settled it, and destroy() also runs on paths
+	-- (a player leaving mid-run) where nothing should be banked.
 	self.pickups:clearAll()
 	self.arena:destroy()
 end

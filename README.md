@@ -11,7 +11,9 @@ You spawn in a **lobby** with a normal camera. Walk into the **portal** to drop 
 timer** starts. Brainrots spawn and chase you (and the swarm grows as the timer counts
 down) while your weapons auto-fire at the nearest one.
 
-Killing them drops XP and sometimes coins. On level-up **the run pauses** — the timer
+Killing them drops a **blue XP orb** where they fell, and sometimes a coin. Both have to be
+walked to — the orb pulls in from a shorter distance than the coin does, so levelling means
+going where the fighting was rather than farming from safety. On level-up **the run pauses** — the timer
 holds, enemies freeze, and you're pinned in place — and three vertical slot-machine reels
 each land on an upgrade of some **rarity** (Rare → Super Rare → Epic → Legendary; rarer is
 stronger but less likely), shown with its own icon. Click one to keep it and the run
