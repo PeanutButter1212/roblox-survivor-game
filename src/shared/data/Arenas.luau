@@ -9,19 +9,14 @@
 -- enemies chase in a straight line and would walk through a solid obstacle anyway, so a
 -- prop that blocked the player but not the swarm would read as a bug.
 
+local PieceUtil = require(script.Parent.Parent:WaitForChild("util"):WaitForChild("Piece"))
+
 local C = Color3.fromRGB
 local BALL = Enum.PartType.Ball
 local CYL = Enum.PartType.Cylinder
 
--- One primitive within a prop.
-export type Piece = {
-	size: Vector3,
-	at: Vector3, -- offset from the prop's base: y = 0 is the floor
-	color: Color3,
-	shape: Enum.PartType?,
-	rot: Vector3?,
-	material: Enum.Material?,
-}
+-- One primitive, shared with util/Piece so the two can't drift apart.
+export type Piece = PieceUtil.Spec
 
 -- A scatterable decoration: a few pieces, dropped at a random spot and yaw.
 export type Prop = { id: string, weight: number, pieces: { Piece } }

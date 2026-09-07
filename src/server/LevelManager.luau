@@ -16,6 +16,10 @@ local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local LobbyDecor = require(script.Parent:WaitForChild("LobbyDecor"))
+local LobbyProps = require(Shared:WaitForChild("data"):WaitForChild("LobbyProps"))
+local Enemies = require(Shared:WaitForChild("data"):WaitForChild("Enemies"))
+local Piece = require(Shared:WaitForChild("util"):WaitForChild("Piece"))
+local RandomUtil = require(Shared:WaitForChild("util"):WaitForChild("RandomUtil"))
 
 local LevelManager = Class.new()
 
@@ -30,6 +34,8 @@ function LevelManager.new(progression: any, stageService: any)
 	self:buildLobby()
 	self:buildPortal()
 	self:buildStageSelector()
+	self:buildGuardians()
+	self:buildProps()
 
 	-- The stage-select UI sends the player's chosen stage here; the profile clamps the
 	-- range. Type alone isn't enough: a fraction or a NaN survives math.clamp and then
@@ -374,6 +380,118 @@ function LevelManager:buildStageSelector()
 	click.MouseClick:Connect(function(player)
 		Remotes.get("OpenStageSelect"):FireClient(player)
 	end)
+end
+
+-- Everything a prop must not land on, in lobby-local XZ with a clearance radius. Kept as
+-- one list rather than scattered checks so adding a station means adding a line here, not
+-- hunting for why decoration is standing in front of it.
+function LevelManager:keepOutZones(): { { x: number, z: number, radius: number } }
+	local portalZ = GameConfig.World.PortalPosition.Z - GameConfig.World.LobbyCenter.Z
+	return {
+		{ x = 0, z = 0, radius = 22 }, -- the spawn ring
+		{ x = 0, z = portalZ, radius = 20 }, -- portal and its arch
+		{ x = 14, z = portalZ, radius = 13 }, -- stage-select station
+		{ x = -48, z = 0, radius = 15 }, -- skill tree board
+		{ x = -16, z = portalZ / 2, radius = 13 }, -- guardian statues
+		{ x = 16, z = portalZ / 2, radius = 13 },
+		{ x = 52, z = -20, radius = 13 }, -- egg pedestals
+		{ x = 52, z = 0, radius = 13 },
+		{ x = 52, z = 20, radius = 13 },
+		{ x = -66, z = -40, radius = 13 }, -- leaderboard panels
+		{ x = -66, z = 0, radius = 13 },
+		{ x = -66, z = 40, radius = 13 },
+	}
+end
+
+-- Scatters decoration across whatever floor the stations aren't using. Props are never
+-- solid: the lobby is a place you walk around freely, and something you can bump into but
+-- can't interact with is just an obstacle.
+function LevelManager:buildProps()
+	local center = GameConfig.World.LobbyCenter
+	local half = GameConfig.World.LobbySize / 2
+	local limit = half - 10 -- keep clear of the walls
+	local zones = self:keepOutZones()
+	local galleryZ = half - 16 -- the brainrot hall runs along the back
+
+	local folder = Instance.new("Folder")
+	folder.Name = "Decor"
+	folder.Parent = self.folder
+
+	local count = math.floor(LobbyProps.Density * GameConfig.World.LobbySize ^ 2 / 10000)
+	for _ = 1, count do
+		for _ = 1, 12 do
+			local x = (math.random() * 2 - 1) * limit
+			local z = (math.random() * 2 - 1) * limit
+			if z < galleryZ then
+				local clear = true
+				for _, zone in zones do
+					local dx, dz = x - zone.x, z - zone.z
+					if dx * dx + dz * dz < zone.radius * zone.radius then
+						clear = false
+						break
+					end
+				end
+				if clear then
+					local prop = RandomUtil.weightedPick(LobbyProps.List)
+					local base = CFrame.new(center + Vector3.new(x, 0.5, z))
+						* CFrame.Angles(0, math.random() * math.pi * 2, 0)
+					for _, piece in prop.pieces do
+						local part = Piece.build(piece, base, 0)
+						part.Parent = folder
+					end
+					break
+				end
+			end
+		end
+	end
+end
+
+-- Two oversized brainrots flanking the walk from the spawn ring to the portal. The gallery
+-- at the back shows the whole roster small; these are here to be walked between, so they
+-- are built from the same data at nearly three times the gallery's scale.
+function LevelManager:buildGuardians()
+	local center = GameConfig.World.LobbyCenter
+	local portalZ = GameConfig.World.PortalPosition.Z
+	local z = center.Z + (portalZ - center.Z) / 2
+	local floorY = center.Y + 0.5
+
+	local guardians = {
+		{ id = "bombardiro", x = -16, yaw = -90 },
+		{ id = "glorbo", x = 16, yaw = 90 },
+	}
+	for _, guardian in guardians do
+		local def = Enemies.fromId(guardian.id)
+		if not def then
+			continue
+		end
+		local base = Vector3.new(center.X + guardian.x, floorY, z)
+
+		LobbyDecor.part({
+			name = guardian.id .. "_Plinth",
+			size = Vector3.new(11, 3, 11),
+			position = base + Vector3.new(0, 1.5, 0),
+			color = GameConfig.Lobby.FrameColor,
+			material = Enum.Material.Concrete,
+			parent = self.folder,
+			collide = true,
+		})
+		LobbyDecor.part({
+			name = "GuardianCap",
+			size = Vector3.new(11.6, 0.4, 11.6),
+			position = base + Vector3.new(0, 3.2, 0),
+			color = Enemies.silhouette(def),
+			material = Enum.Material.Neon,
+			parent = self.folder,
+		})
+
+		-- Turned to face the walkway rather than the exit, so they read as flanking it.
+		local stand = CFrame.new(base + Vector3.new(0, 3.4, 0)) * CFrame.Angles(0, math.rad(guardian.yaw), 0)
+		for _, piece in def.body do
+			local part = Piece.build(piece, stand, 0, 1.4)
+			part.Name = guardian.id
+			part.Parent = self.folder
+		end
+	end
 end
 
 -- Forgets a leaving player. Without this the portal debounce keeps a reference to every

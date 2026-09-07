@@ -60,7 +60,7 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 `GameConfig` (world layout, ramp, coin economy, daily rewards) · `Remotes` (server creates
 the RemoteEvents, client waits for them) · `util/` (`Class`, `RandomUtil`) ·
 `data/` (`Stages`, `Skills`, `Upgrades`, `Weapons`, `Rarities`, `Enemies`, `Arenas`,
-`Pets`, `Eggs`, `Evolutions`, `Pickups`, `Leaderboards`).
+`Pets`, `Eggs`, `Evolutions`, `Pickups`, `Leaderboards`, `LobbyProps`).
 
 Instance mapping lives in `default.project.json`.
 
@@ -131,6 +131,12 @@ Instance mapping lives in `default.project.json`.
   weapon calls it on each shot, for every player sharing the server. It must stay sort-free
   and allocate a fixed amount rather than one table per candidate — it keeps a top-k list
   by insertion on squared distances. Don't "simplify" it back into collect-then-sort.
+- **One piece type, in `util/Piece`.** The data modules reference `PieceUtil.Spec` rather
+  than each declaring their own copy — they had already drifted apart once when the shared
+  one gained a field.
+- **Lobby decoration never collides, and never lands on a station.** `LevelManager` keeps
+  one `keepOutZones` list; adding a station means adding a line to it, not discovering
+  later that a bench is standing in front of the skill tree.
 - **One Heartbeat loop**, in `init.server.luau`. Do not add `RunService` loops elsewhere;
   have the owning service expose `update(dt)` and call it from there.
 - **Server is authoritative.** Anything a client asks for over a RemoteEvent (upgrade

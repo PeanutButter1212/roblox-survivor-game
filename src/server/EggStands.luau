@@ -22,8 +22,8 @@ local EggStands = Class.new()
 
 local PLINTH_HEIGHT = 3.4
 local HOVER = 2.2 -- how far the egg floats above its plinth
-local SPACING = 14
-local SIDE_X = 32 -- the eggs line the +X wall; the skill tree board owns -X
+local SPACING = 20
+local SIDE_X = 52 -- the eggs line the +X wall; the skill tree board owns -X
 local BOB_HEIGHT = 0.35
 local BOB_SPEED = 1.6
 local SPIN_SPEED = 0.7

@@ -73,8 +73,10 @@ would drag every player into one player's weather.
 
 ## The lobby
 
-A walled room rather than a slab in the void: inlaid floor, a glowing spawn ring, lit
-corner pillars, and the portal built as an arch with a ring turning inside it. Three
+A 140-stud walled room: inlaid floor, a glowing spawn ring, lit corner pillars, and the
+portal built as an arch with a ring turning inside it. Two **oversized brainrot statues**
+flank the walk from the spawn ring to the portal, and the floor is scattered with planters,
+benches, lamps, banners and crates. Three
 stations are framed and lit in their own colours so you can tell them apart at a glance —
 **SELECT STAGE**, **SKILL TREE**, and the **egg pedestals**.
 

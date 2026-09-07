@@ -11,20 +11,15 @@
 
 local RandomUtil = require(script.Parent.Parent:WaitForChild("util"):WaitForChild("RandomUtil"))
 
+local PieceUtil = require(script.Parent.Parent:WaitForChild("util"):WaitForChild("Piece"))
+
 local C = Color3.fromRGB
 local BALL = Enum.PartType.Ball
 local CYL = Enum.PartType.Cylinder
 local WEDGE = Enum.PartType.Wedge
 
--- One primitive in a brainrot's body.
-export type Piece = {
-	size: Vector3,
-	at: Vector3, -- offset from the feet: y = 0 is the floor, -Z is forward
-	color: Color3,
-	shape: Enum.PartType?, -- defaults to Block
-	rot: Vector3?, -- optional local rotation in degrees (cylinders default to a sideways axis)
-	material: Enum.Material?, -- defaults to SmoothPlastic
-}
+-- One primitive, shared with util/Piece so the two can't drift apart.
+export type Piece = PieceUtil.Spec
 
 export type EnemyDef = {
 	id: string,

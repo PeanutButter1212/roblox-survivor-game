@@ -42,7 +42,7 @@ function SkillTreeService:buildBoard()
 	board.Anchored = true
 	board.Size = Vector3.new(1, 9, 11)
 	-- Stand it at the side of the lobby platform, facing the spawn.
-	board.Position = center + Vector3.new(-26, 4.5, 0)
+	board.Position = center + Vector3.new(-48, 4.5, 0)
 	board.Material = Enum.Material.SmoothPlastic
 	board.Color = Color3.fromRGB(30, 28, 44)
 	-- Into the Lobby folder LevelManager made (it runs first), so frameBoard's plinth and
