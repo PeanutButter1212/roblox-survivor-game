@@ -15,6 +15,12 @@ matched to what's in the repo.
 
 ---
 
+## v2.10 — XP is a collectable orb
+A kill now drops a blue XP orb where the brainrot fell instead of awarding XP outright, and
+it has to be walked to. Its magnet reach is deliberately shorter than a coin's, so levelling
+pulls you toward the fighting. CoinManager became PickupManager, with both kinds defined in
+data/Pickups rather than two near-identical managers.
+
 ## v2.9 — Leaderboards
 Three OrderedDataStore-backed panels on the lobby wall: highest stage, highest level,
 longest login streak. They publish and re-read on a minute timer rather than per frame,
