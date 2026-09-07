@@ -217,6 +217,9 @@ actually paces, so turn it off before judging balance.
   each theme's `mood` (its Lighting preset). Add a map = add a row.
 - `src/shared/data/Stages.luau` — per-stage size, duration, enemy stats, and which theme it
   uses.
+- `src/shared/data/LobbyProps.luau` — the lobby's scatter decoration and how densely it's
+  placed. Adding a station means adding a keep-out zone in `LevelManager`, or props will
+  stand in front of it.
 - `src/shared/data/Pickups.luau` — the XP orb and the coin: reach, magnet speed, lifetime,
   cap and appearance.
 - `src/shared/data/Pets.luau` — companion stats and bodies; `Pets.MaxEquipped` sets how
