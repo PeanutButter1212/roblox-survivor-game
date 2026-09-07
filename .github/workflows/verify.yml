@@ -1,0 +1,70 @@
+# verify.yml — runs the project's four gates on every pull request.
+#
+# This is the same scripts/check.sh developers run locally, on the same pinned tool
+# versions, so a green tick here means the same thing a green local run does. It cannot
+# tell you whether the game plays correctly — nothing can, without Roblox Studio — but it
+# does stop formatting, lint, typecheck or build regressions reaching main.
+#
+# Tool versions are pinned deliberately. Tracking "latest" means an upstream release can
+# turn main red without anyone changing a line of this repo.
+
+name: verify
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  STYLUA_VERSION: v2.5.2
+  SELENE_VERSION: 0.31.0
+  ROJO_VERSION: v7.6.1
+  LUAU_LSP_VERSION: 1.69.0
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache toolchain
+        id: toolcache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin
+          key: tools-${{ env.STYLUA_VERSION }}-${{ env.SELENE_VERSION }}-${{ env.ROJO_VERSION }}-${{ env.LUAU_LSP_VERSION }}
+
+      - name: Install toolchain
+        if: steps.toolcache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          fetch() { # url, binary name inside the archive
+            curl -sfL -o /tmp/tool.zip "$1"
+            unzip -oq /tmp/tool.zip -d /tmp/tool
+            find /tmp/tool -type f -name "$2" -exec install -m755 {} "$HOME/.local/bin/$2" \;
+            rm -rf /tmp/tool /tmp/tool.zip
+          }
+          fetch "https://github.com/JohnnyMorganz/StyLua/releases/download/${STYLUA_VERSION}/stylua-linux-x86_64.zip" stylua
+          fetch "https://github.com/Kampfkarren/selene/releases/download/${SELENE_VERSION}/selene-${SELENE_VERSION}-linux.zip" selene
+          fetch "https://github.com/rojo-rbx/rojo/releases/download/${ROJO_VERSION}/rojo-${ROJO_VERSION#v}-linux-x86_64.zip" rojo
+          fetch "https://github.com/JohnnyMorganz/luau-lsp/releases/download/${LUAU_LSP_VERSION}/luau-lsp-linux-x86_64.zip" luau-lsp
+
+      - name: Add tools to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Report tool versions
+        run: |
+          stylua --version
+          selene --version
+          rojo --version
+          luau-lsp --version
+
+      # check.sh generates roblox.yml and .luau/globalTypes.d.luau itself on first run;
+      # both are gitignored and need network, which the runner has.
+      - name: Run the gate
+        run: scripts/check.sh
