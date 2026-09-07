@@ -56,7 +56,9 @@ end
 -- filled in by refresh().
 function LeaderboardService:buildPanel(board: any)
 	local center = GameConfig.World.LobbyCenter
-	local x = center.X - GameConfig.World.LobbySize / 2 + 3
+	-- +4, not +3: frameBoard's plinth is 4 studs wide on X, and at +3 it reached half a
+	-- stud into the wall.
+	local x = center.X - GameConfig.World.LobbySize / 2 + 4
 	local floorY = center.Y + 0.5
 
 	local panel = Instance.new("Part")
@@ -108,23 +110,33 @@ end
 -- Writes every connected player's current value for `board`. Failures are swallowed: a
 -- missed publish costs one refresh of freshness, and there's nothing useful to do about a
 -- throttled write except try again next cycle.
+--
+-- Two guards, both about not destroying a real entry. A profile whose load failed sits on
+-- defaults by design, so publishing it would rank an established player at level 1 — hence
+-- the isLoaded check. And the write takes the maximum rather than overwriting, so even a
+-- value that slips through can only ever move a board up. These stats never legitimately
+-- go down; bump a board's store suffix to wipe it.
 function LeaderboardService:publish(board: any)
 	local store = self.stores[board.id]
 	for _, player in Players:GetPlayers() do
 		local profile = self.progression:getProfile(player)
-		if profile then
+		if profile and profile:isLoaded() then
 			local value = board.get(profile)
 			if type(value) == "number" and value > 0 then
+				local best = math.floor(value)
 				pcall(function()
-					store:SetAsync(tostring(player.UserId), math.floor(value))
+					store:UpdateAsync(tostring(player.UserId), function(previous)
+						return math.max(tonumber(previous) or 0, best)
+					end)
 				end)
 			end
 		end
 	end
 end
 
--- Resolves a userId to a name, once. GetNameFromUserIdAsync is a web call and throws for
--- deleted accounts, so the id is the fallback and the result is cached either way.
+-- Resolves a userId to a username, once. GetNameFromUserIdAsync is a web call and throws
+-- for deleted accounts, so the id is the fallback and the result is cached either way. The
+-- cache never expires, so a rename shows the old username until the server restarts.
 function LeaderboardService:nameFor(userId: number): string
 	local cached = self.names[userId]
 	if cached then
@@ -164,14 +176,30 @@ function LeaderboardService:refresh(board: any)
 	end
 end
 
+-- Publishes every board once, for use on shutdown so the last minute of play isn't lost.
+function LeaderboardService:publishAll()
+	for _, board in Leaderboards.List do
+		self:publish(board)
+	end
+end
+
 -- Publishes and re-reads every board on a timer. Deliberately not on the Heartbeat loop:
 -- these are web calls on a minute-scale cadence, not per-frame work.
 function LeaderboardService:startLoop()
 	task.spawn(function()
 		while true do
-			for _, board in Leaderboards.List do
-				self:publish(board)
-				self:refresh(board)
+			-- The whole cycle is wrapped, not just the store calls inside it. An
+			-- unhandled throw here would kill this coroutine outright and leave all three
+			-- panels frozen on their last contents for the life of the server, with
+			-- nothing to restart it and nothing to notice.
+			local ok, err = pcall(function()
+				for _, board in Leaderboards.List do
+					self:publish(board)
+					self:refresh(board)
+				end
+			end)
+			if not ok then
+				warn("[LeaderboardService] refresh cycle failed: " .. tostring(err))
 			end
 			task.wait(Leaderboards.RefreshSeconds)
 		end

@@ -49,6 +49,10 @@ function PlayerProfile.new(player: Player)
 	self.inLevel = false
 	self.invulnerable = false
 	self.frozen = false -- true while an upgrade pick is on screen; movement is pinned to 0
+	-- False until DataService has actually reached the datastore. A load FAILURE leaves the
+	-- profile on defaults on purpose, so anything that publishes progression outward must
+	-- check this or it will broadcast level 1 for an established player.
+	self.loaded = false
 	self.stage = 1 -- the stage the portal will launch (player-selected; persisted)
 	self.coins = 0 -- soft currency earned by clearing stages (persisted)
 	self.maxStageCleared = 0 -- highest stage number ever cleared; gates stage selection
@@ -252,6 +256,17 @@ function PlayerProfile:recordStageCleared(stageNumber: number)
 		self.maxStageCleared = stageNumber
 		self.player:SetAttribute("MaxStage", self.maxStageCleared)
 	end
+end
+
+-- Whether this profile reflects a real datastore read (including "no save yet"), rather
+-- than defaults left in place by a failed load.
+function PlayerProfile:isLoaded(): boolean
+	return self.loaded
+end
+
+-- Marks the profile as reflecting a completed load.
+function PlayerProfile:markLoaded()
+	self.loaded = true
 end
 
 -- The player's current coin balance.

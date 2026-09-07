@@ -21,7 +21,13 @@ export type BoardDef = {
 local Leaderboards = {}
 
 Leaderboards.TopCount = 10 -- rows shown per board
-Leaderboards.RefreshSeconds = 60 -- how often to publish and re-read; also the write budget
+-- How often to publish and re-read. This is a budget as much as a freshness setting, and
+-- the tighter of the two limits is on READS: Roblox allows 5 + players x 2 sorted-list
+-- requests per minute, and this issues one per board per refresh. Three boards on an empty
+-- server is 3 of 5 — so adding boards eats headroom fast, and past about five you would
+-- need to raise this interval or every board goes stale at once. Writes are far safer:
+-- boards x players per minute against a 30 + players x 5 budget.
+Leaderboards.RefreshSeconds = 60
 
 Leaderboards.List = {
 	{
