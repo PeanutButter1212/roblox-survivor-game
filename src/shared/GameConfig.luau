@@ -72,6 +72,11 @@ GameConfig.Enemies = {
 	XPReward = 5,
 	HealthRampEvery = 15, -- every N stage-seconds, enemies gain HealthRampAmount HP
 	HealthRampAmount = 4,
+	-- Damage ramps through a run too, not just health. Without this the back half of a
+	-- long stage is a bigger crowd of enemies that individually hurt exactly as little as
+	-- the ones in the first ten seconds, so the pressure never actually rises.
+	DamageRampEvery = 20, -- every N stage-seconds...
+	DamageRampFactor = 0.08, -- ...enemies spawn with this much more of their base damage
 	-- Brainrot bodies average ~11 parts. At a late stage's live cap that's thousands of
 	-- Instances per player, so the swarm gets a total cosmetic-part budget: enemies spawned
 	-- once it's spent are single coloured blocks instead. Head count (and therefore
@@ -96,6 +101,16 @@ GameConfig.Enemies = {
 		LungeEvery = 3.2, -- seconds of circling between dives
 		LungeTime = 0.9,
 		LungeFactor = 1.4, -- speed multiplier during the dive
+	},
+	Ranged = {
+		Preferred = 30, -- distance it tries to shoot from
+		Tolerance = 5, -- closes in or backs off outside this band
+		ApproachFactor = 0.8,
+		ShotInterval = 2.2, -- seconds between shots
+		ProjectileSpeed = 34, -- slow enough to walk out of, fast enough to punish standing still
+		ProjectileRange = 55, -- studs before it expires
+		DamageFactor = 0.9, -- shot damage as a fraction of the enemy's contact damage
+		MaxLive = 60, -- hard cap on projectiles in one arena
 	},
 	Splitter = {
 		Children = 2,

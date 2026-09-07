@@ -23,11 +23,13 @@ export type Target = { root: BasePart, humanoid: Humanoid }
 -- floor height brainrots stand on) and `stageConfig` (for base enemy stats and which
 -- roster the stage number unlocks). `onKilled(player, xp, position, coins)` fires on each
 -- death, carrying where it died so the caller can drop the coins there.
+-- `onShoot(origin, direction, damage, colour)` fires when a ranged brainrot takes a shot.
 function EnemyManager.new(
 	parentFolder: Instance,
 	arena: any,
 	stageConfig: any,
-	onKilled: (Player, number, Vector3, number) -> ()
+	onKilled: (Player, number, Vector3, number) -> (),
+	onShoot: (Vector3, Vector3, number, Color3) -> ()
 )
 	local self = setmetatable({}, EnemyManager)
 
@@ -39,6 +41,7 @@ function EnemyManager.new(
 	self.arena = arena
 	self.config = stageConfig
 	self.onKilled = onKilled
+	self.onShoot = onShoot
 	self.enemies = {} :: { any }
 	self.spawnAccumulator = 0
 	self.groundY = arena.center.Y -- the floor's top surface; enemies are placed by their feet
@@ -64,11 +67,15 @@ function EnemyManager:spawnOne(target: Target, maxAlive: number, elapsed: number
 	pos = self.arena:resolveObstacles(pos, math.max(def.hitbox.X, def.hitbox.Z) / 2)
 	local rampedHealth = self.config.enemyHealth
 		+ math.floor(elapsed / GameConfig.Enemies.HealthRampEvery) * GameConfig.Enemies.HealthRampAmount
+	-- Damage ramps with stage time as well as health, so the back half of a long stage is
+	-- genuinely more dangerous rather than just more crowded.
+	local damageSteps = math.floor(elapsed / GameConfig.Enemies.DamageRampEvery)
+	local rampedDamage = self.config.contactDamage * (1 + damageSteps * GameConfig.Enemies.DamageRampFactor)
 
 	local stats: Enemy.Stats = {
 		health = math.max(1, math.floor(rampedHealth * def.healthMult)),
 		speed = self.config.enemySpeed * def.speedMult,
-		damage = math.max(1, math.floor(self.config.contactDamage * def.damageMult)),
+		damage = math.max(1, math.floor(rampedDamage * def.damageMult)),
 		xp = math.max(1, math.floor(GameConfig.Enemies.XPReward * def.xpMult)),
 		-- Rolled once at spawn rather than on death: a drop that's decided up front can't
 		-- be re-rolled by anything that happens to the enemy in between.
@@ -98,7 +105,20 @@ function EnemyManager:update(dt: number, target: Target, maxAlive: number, spawn
 			continue
 		end
 		enemy:steer(dt, target.root.Position, self.arena)
-		if enemy:canReach(target.root.Position, GameConfig.Enemies.ContactRange, GameConfig.Enemies.ContactHeight) then
+
+		if enemy:isRanged() then
+			-- Ranged brainrots attack only with shots; letting them also deal contact
+			-- damage would punish closing on them, which is the counterplay.
+			local origin = enemy:muzzlePosition()
+			local toPlayer = target.root.Position - origin
+			if enemy:tryShoot(dt) and toPlayer.Magnitude <= GameConfig.Enemies.Ranged.ProjectileRange then
+				local damage =
+					math.max(1, math.floor(enemy:getContactDamage() * GameConfig.Enemies.Ranged.DamageFactor))
+				self.onShoot(origin, toPlayer, damage, Enemies.silhouette(enemy.def))
+			end
+		elseif
+			enemy:canReach(target.root.Position, GameConfig.Enemies.ContactRange, GameConfig.Enemies.ContactHeight)
+		then
 			if enemy:tryHit(now, GameConfig.Enemies.ContactCooldown) and target.humanoid.Health > 0 then
 				target.humanoid:TakeDamage(enemy:getContactDamage())
 			end

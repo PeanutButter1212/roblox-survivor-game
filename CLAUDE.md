@@ -30,6 +30,7 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 | `Arena` | A square floor ringed by walls at a given origin+size, dressed with its stage's theme. Bounds clamping and teardown. |
 | `EnemyManager` | Live enemies for **one** stage instance: rolls which brainrot spawns, spawn rate/cap, movement, contact damage, nearest-enemy queries, death/XP. |
 | `Enemy` | One enemy: assembles its brainrot's body from `data/Enemies`, health, movement (CFrame-driven), damage feedback, contact cooldown. |
+| `ProjectileManager` | Enemy shots in flight for **one** stage instance: travel, hit test, expiry. Driven from StageInstance, so shots freeze during a level-up pick. |
 | `CoinManager` | Coin pickups for **one** stage instance: drops, bobbing, magnet-to-player, expiry. Bound to one profile so a drop can only pay its owner. |
 | `CombatService` | Stateless. Fires one player's auto-weapons at enemies in their own instance. |
 | `PetService` | Every player's pets: what they've hatched, which are equipped, the live models, and both hatch paths (coins and Robux). Owns `ProcessReceipt`. |
@@ -85,8 +86,10 @@ Instance mapping lives in `default.project.json`.
   weapon and pet ranges are authored inside it, and `GameConfig.targetRange()` clamps as
   the invariant. Moving the camera means revisiting that number.
 - **Enemy behaviour is data.** A bestiary row's `behaviour` picks chase / charger /
-  circler / splitter; the tuning lives in `GameConfig.Enemies`. `Enemy:steer` dispatches on
-  it — never branch on a specific enemy id.
+  circler / ranged / splitter; the tuning lives in `GameConfig.Enemies`. `Enemy:steer`
+  dispatches on it — never branch on a specific enemy id. A ranged enemy attacks **only**
+  by shooting; giving it contact damage too would punish closing on it, which is the
+  counterplay.
 - **Lighting is client-side.** `Lighting` is one shared instance but every player is on
   their own stage, so a server-side change drags everyone into one player's weather. Stage
   moods live on the theme (`data/Arenas`) and are applied by `AtmosphereController`.
