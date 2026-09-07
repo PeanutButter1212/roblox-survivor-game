@@ -198,7 +198,7 @@ end
 
 -- Selects which stage the portal launches, clamped to whatever the player may currently
 -- reach (normally 1 .. highest cleared + 1, or the whole ladder while
--- GameConfig.Progression.UnlockAllStages is on). Still clamped server-side either way, so
+-- GameConfig.Testing.UnlockAllStages is on). Still clamped server-side either way, so
 -- a client asking for stage 900 gets the ceiling rather than the stage. Replicates the
 -- choice for the HUD.
 function PlayerProfile:setStage(stageNumber: number)
@@ -235,6 +235,14 @@ end
 function PlayerProfile:addCoins(amount: number)
 	self.coins += amount
 	self.player:SetAttribute("Coins", self.coins)
+end
+
+-- Raises the balance to at least `amount`, never lowering it. Only used by the testing
+-- top-up (GameConfig.Testing.GrantCoins); normal play goes through addCoins.
+function PlayerProfile:topUpCoins(amount: number)
+	if self.coins < amount then
+		self:addCoins(amount - self.coins)
+	end
 end
 
 -- Tries to spend `amount` coins. Returns true (and deducts) if affordable, else false
