@@ -15,18 +15,39 @@ to keep it. The run resumes once you've picked. Survive to 0:00 to win. Die and 
 to the lobby; walk back through the portal to retry. Health, XP, coins and the timer are
 on the HUD.
 
-**The enemies:** fourteen brainrots, each with its own body built from primitives and its
-own stat profile — Tung Tung Tung Sahur and Chimpanzini Bananini from stage 1, up through
+**The enemies:** fourteen brainrots, each with its own body, stat profile **and
+behaviour**. Most chase you down, but **chargers** (Tralalero, Bombardiro, Cappuccino,
+Bombombini) close in, stop dead to telegraph, then dash along the line they committed to —
+stand still and you're hit, step aside and they miss. **Circlers** (Bobrito, Trippi
+Troppi, Ballerina) hold a ring around you and strafe instead of piling in. And **Glorbo
+Fruttodrillo splits** into smaller, faster watermelon chunks when you kill it. Behaviour is
+one field per row — Tung Tung Tung Sahur and Chimpanzini Bananini from stage 1, up through
 Tralalero Tralala, Lirili Larila, Frigo Camelo, Bombardiro Crocodilo, Glorbo Fruttodrillo,
 Cappuccino Assassino and Bombombini Gusini as you climb. Fast glass cannons, slow walls,
 and elites with floating nametags. Early fodder thins out as the heavies come online, so
 stage 12 isn't still mostly Sahurs. One row in `data/Enemies.luau` per brainrot.
 
+**The lobby:** a walled room rather than a slab in the void — inlaid floor, a glowing
+spawn ring, and lit corner pillars. The portal is an arch with a ring turning inside it,
+and the two stations (SELECT STAGE, SKILL TREE) are framed and lit in their own colours so
+you can tell them apart. Along the back wall is a **brainrot hall**: one pedestal per
+enemy in the bestiary, showing its actual body at half scale with its name. It's built
+from `data/Enemies.luau`, so a new brainrot appears on display for free.
+
+**Lighting:** the lobby has its own preset, and each stage cross-fades to its theme's mood
+— the freezer is cold and dim, the cafe is late-evening amber, the shore is bright. This
+runs on the client: `Lighting` is one shared instance, so a server-side change would drag
+every player into one player's weather.
+
 **The maps:** every stage is played on one of six themes — Sahur Woods, Tralalero Shore,
 Frigo Freezer, Bombardiro Airfield, Glorbo Orchard, Cappuccino Cafe — each with its own
 floor and wall surfaces, accent trim and scattered props (stumps, palms, ice shards,
-barrels, melons, coffee tables). Stages past the sixth cycle back through them. Props are
-decoration and don't block movement. One row in `data/Arenas.luau` per theme.
+barrels, melons, coffee tables). Stages past the sixth cycle back through them.
+
+Each map also scatters **solid obstacles** — boulders, ice walls, shipping containers, hay
+bales, café counters — that block you *and* the swarm, so you can put cover between
+yourself and a charger. Props stay purely decorative; obstacles are the ones that stop
+things. One row in `data/Arenas.luau` per theme.
 
 **Coins & farming:** brainrots sometimes **drop coins** when they die — walk near one and
 it flies to you. Clearing a stage pays **coins** too (shown on the HUD). Your **first**
@@ -37,6 +58,23 @@ next to the portal opens a picker; click any unlocked stage (1 … highest clear
 your choice shows on the portal "door" (**▶ STAGE N**) before you touch it to enter. So you
 choose between grinding a beaten stage and pushing into the next one. Coins are spent in the
 lobby **skill tree** (below).
+
+**Pets:** three **egg pedestals** line one wall of the lobby, each holding that egg's
+actual model — bobbing, turning and lit in its own colour — with its name and coin price
+floating above. Click one to open the shop on that egg. Hatching bursts a ring of the
+pet's rarity colour around you, and each pet carries a matching glow so a Legendary is
+obvious in a dim arena. The three eggs (Cracked, Golden, Cosmic)
+each roll one of eight companion brainrots — Frulli Frulla, Talpa Di Ferro,
+Orangutini Ananassini, Tigrilini Watermelini, Svinina Bombardino, La Vacca Saturnita,
+Graipuss Medussi, Garama Mandandanam. Up to **three pets follow you at once**, orbiting
+your character and auto-attacking whatever's nearest — a second gun that scales with your
+Damage skill. Every egg shows its **full drop table** in the shop.
+
+Eggs can be opened with **coins** (works immediately) or with **Robux** (needs setup, see
+below). The roll always happens on the server: the client asks to open an egg, never says
+what it got. Add a pet with a row in `data/Pets.luau` and an entry in an egg's pool in
+`data/Eggs.luau` — including its body, so it gets its own pedestal in the lobby
+automatically.
 
 **Skill tree:** a clickable **board in the spawn area** opens a visual tree with three
 permanent **character** buff branches — **Max Health**, **Move Speed**, **Damage** (these
@@ -68,14 +106,44 @@ DataStores. Roblox hosts all of this — no external backend.
   one or push the next — your choice shows on the portal door), and **click the SKILL TREE
   board** to spend coins on permanent character buffs.
 
+### A note on weapon range
+
+Weapon and pet ranges are deliberately kept **inside what the top-down camera can see**.
+Earlier the rifle reached 95 studs while the camera showed about 45, so you spent the round
+watching tracers fly at enemies that had never appeared on screen. The camera framing now
+sets the play radius, every range is authored inside it, and `GameConfig.targetRange()`
+clamps anything that isn't. If you zoom the camera, revisit `MaxTargetRange` with it.
+
+### Selling eggs for Robux (optional)
+
+The coin path works out of the box. To turn on the Robux path:
+
+1. On https://create.roblox.com, open your experience → **Monetization → Developer
+   Products**. Create one product per egg and set its Robux price there.
+2. Copy each product's numeric id into the matching row's `productId` in
+   `src/shared/data/Eggs.luau` (they start at `0`, which is what keeps the button
+   disabled). Set `robuxPrice` to match what you priced it at — that field is display only.
+3. That's it: `PetService` already handles the purchase receipt, and the shop's Robux
+   button turns on for any egg with a non-zero `productId`.
+
+Two things worth knowing. **The odds shown in the shop are computed from the same weights
+the server rolls with** — Roblox requires the chances of paid random items to be disclosed,
+so don't ever hand-write a percentage; change the weights and the published table follows.
+And **cashing out Robux** through DevEx has its own requirements (age, ID verification, a
+minimum balance) that are entirely on Roblox's side.
+
 ### Where to tune things
-- `src/shared/GameConfig.luau` — world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards and kill drops** (`GameConfig.Coins`).
+- `src/shared/GameConfig.luau` — camera framing and the play radius (`GameConfig.Camera` / `GameConfig.Combat.MaxTargetRange` — these are one decision, see below), enemy behaviour tuning (`GameConfig.Enemies.Charger` / `.Circler` / `.Splitter`), world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards and kill drops** (`GameConfig.Coins`), **lobby size and palette** (`GameConfig.World` / `GameConfig.Lobby`).
+- `src/shared/data/Arenas.luau` — also carries each theme's `mood` (the Lighting preset used while you're on that stage).
 - `src/shared/data/Enemies.luau` — the brainrot bestiary: stats, spawn odds, unlock stage, and each one's body (add a brainrot = add a row).
 - `src/shared/data/Arenas.luau` — map themes: surfaces, trim, props (add a map = add a row).
 - `src/shared/data/Stages.luau` — per-stage size, duration, enemy stats and which theme it uses.
 - `src/shared/data/Rarities.luau` — rarity odds, power multipliers, colors.
 - `src/shared/data/Weapons.luau` — weapon stats and reel icons (add a gun = add a row).
 - `src/shared/data/Upgrades.luau` — upgrade archetypes, icons and tints (add an upgrade = add a row).
+- `src/shared/data/Pets.luau` — companion stats and bodies (add a pet = add a row); `Pets.MaxEquipped` sets how many follow you.
+- `src/shared/data/Eggs.luau` — egg prices, Robux product ids, and drop pools. Odds are derived from the weights.
+- `GameConfig.Progression.UnlockAllStages` — when true, the picker offers every stage up to `StageCeiling` instead of gating at your best clear. Handy for testing a late map without grinding to it.
 
 ## Project layout
 
@@ -83,8 +151,8 @@ Code is organised into small, documented OOP classes (one responsibility each).
 
 | Folder        | Syncs into Studio at          | What's there                                            |
 | ------------- | ----------------------------- | ------------------------------------------------------- |
-| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CoinManager, CombatService, ProgressionService, PlayerProfile, LevelManager, DataService, SkillTreeService, DailyRewardService |
-| `src/client`  | StarterPlayerScripts > Client | Controllers: CameraController, HudController, UpgradeSpinController, SkillTreeController, DailyBonusController, StageSelectController; plus `Icons` (UI icons drawn from Frames) |
+| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CoinManager, CombatService, ProgressionService, PlayerProfile, LevelManager, LobbyDecor, LobbyGallery, PetService, Pet, DataService, SkillTreeService, DailyRewardService |
+| `src/client`  | StarterPlayerScripts > Client | Controllers: AtmosphereController, CameraController, HudController, UpgradeSpinController, SkillTreeController, DailyBonusController, StageSelectController, PetShopController; plus `Icons` (UI icons drawn from Frames) |
 | `src/shared`  | ReplicatedStorage > Shared    | `GameConfig`, `Remotes`, `util/` (Class, RandomUtil), `data/` (Rarities, Weapons, Upgrades, Skills, Stages, Enemies, Arenas) |
 
 Mapping is defined in `default.project.json`.

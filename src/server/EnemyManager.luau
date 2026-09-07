@@ -43,6 +43,7 @@ function EnemyManager.new(
 	self.spawnAccumulator = 0
 	self.groundY = arena.center.Y -- the floor's top surface; enemies are placed by their feet
 	self.pieceCount = 0 -- cosmetic parts currently alive; see GameConfig.Enemies.DetailBudget
+	self.maxAlive = 0 -- last cap the stage's ramp asked for
 	return self
 end
 
@@ -81,6 +82,7 @@ end
 -- Per-frame update toward the single `target`. `maxAlive`/`spawnInterval` come from the
 -- instance's difficulty ramp; `elapsed` is stage time so far.
 function EnemyManager:update(dt: number, target: Target, maxAlive: number, spawnInterval: number, elapsed: number)
+	self.maxAlive = maxAlive -- remembered so a splitter's children can respect the cap
 	self.spawnAccumulator += dt
 	while self.spawnAccumulator >= spawnInterval do
 		self.spawnAccumulator -= spawnInterval
@@ -92,7 +94,7 @@ function EnemyManager:update(dt: number, target: Target, maxAlive: number, spawn
 		if enemy:isDead() then
 			continue
 		end
-		enemy:moveToward(target.root.Position, enemy:getSpeed(), dt)
+		enemy:steer(dt, target.root.Position, self.arena)
 		if enemy:distanceTo(target.root.Position) <= enemy:getContactRange(GameConfig.Enemies.ContactRange) then
 			if enemy:tryHit(now, GameConfig.Enemies.ContactCooldown) and target.humanoid.Health > 0 then
 				target.humanoid:TakeDamage(enemy:getContactDamage())
@@ -133,9 +135,55 @@ function EnemyManager:damageEnemy(enemy: any, amount: number, byPlayer: Player)
 	local position = enemy:getPosition()
 	local died = enemy:takeDamage(amount)
 	if died then
+		local splits = if enemy.def.behaviour == "splitter" and not enemy.isChild
+			then self:describeSplit(enemy)
+			else nil
 		enemy:destroy()
 		self:removeDead()
 		self.onKilled(byPlayer, xp, position, coins)
+		if splits then
+			self:spawnSplit(splits, position)
+		end
+	end
+end
+
+-- Captures what a dying splitter's children should inherit, before its model is gone.
+function EnemyManager:describeSplit(enemy: any): any
+	local cfg = GameConfig.Enemies.Splitter
+	return {
+		def = enemy.def,
+		health = math.max(1, math.floor(enemy.maxHealth * cfg.HealthFactor)),
+		speed = enemy.speed * 1.25, -- the pieces are smaller and quicker than the whole
+		damage = math.max(1, math.floor(enemy.damage * 0.6)),
+		xp = math.max(1, math.floor(enemy.xp * 0.4)),
+	}
+end
+
+-- Scatters a splitter's children around where it died. They carry no coins: a splitter
+-- that multiplied its own drop would make the economy scale with how you killed things.
+function EnemyManager:spawnSplit(split: any, position: Vector3)
+	local cfg = GameConfig.Enemies.Splitter
+	for _ = 1, cfg.Children do
+		if #self.enemies >= self.maxAlive then
+			return
+		end
+		local angle = math.random() * math.pi * 2
+		local at = position + Vector3.new(math.cos(angle), 0, math.sin(angle)) * cfg.SpreadRadius
+		at = self.arena:clampToBounds(at)
+
+		local stats: Enemy.Stats = {
+			health = split.health,
+			speed = split.speed,
+			damage = split.damage,
+			xp = split.xp,
+			coins = 0,
+		}
+		local detailed = self.pieceCount + #split.def.body <= GameConfig.Enemies.DetailBudget
+		local child =
+			Enemy.new(split.def, Vector3.new(at.X, self.groundY, at.Z), stats, self.folder, detailed, cfg.ScaleFactor)
+		child.isChild = true
+		table.insert(self.enemies, child)
+		self.pieceCount += child:getPieceCount()
 	end
 end
 

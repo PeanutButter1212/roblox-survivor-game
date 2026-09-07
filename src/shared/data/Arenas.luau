@@ -26,9 +26,27 @@ export type Piece = {
 -- A scatterable decoration: a few pieces, dropped at a random spot and yaw.
 export type Prop = { id: string, weight: number, pieces: { Piece } }
 
+-- A solid obstacle. Unlike props these DO collide, and the arena remembers each one's
+-- footprint so enemies can be pushed clear of it — which is what makes them cover rather
+-- than something the swarm walks through while the player can't.
+export type Obstacle = { id: string, weight: number, radius: number, pieces: { Piece } }
+
+-- Lighting mood for a theme. Applied client-side (see client/AtmosphereController): each
+-- player is in their own arena, and Lighting is one shared instance, so the server can't
+-- set this per-stage without changing it for everyone.
+export type Mood = {
+	clockTime: number,
+	ambient: Color3,
+	outdoorAmbient: Color3,
+	fogColor: Color3,
+	fogEnd: number,
+	brightness: number,
+}
+
 export type ArenaTheme = {
 	id: string,
 	name: string,
+	mood: Mood,
 	floorColor: Color3,
 	floorMaterial: Enum.Material,
 	wallColor: Color3,
@@ -36,6 +54,8 @@ export type ArenaTheme = {
 	accentColor: Color3, -- the trim ringing the floor, and the corner pillars
 	propDensity: number, -- props per 10,000 studs² of floor
 	props: { Prop },
+	obstacleDensity: number, -- solid obstacles per 10,000 studs² of floor
+	obstacles: { Obstacle },
 }
 
 local Arenas = {}
@@ -44,6 +64,38 @@ local Arenas = {}
 Arenas.List = {
 	{
 		id = "woods",
+		obstacleDensity = 0.75,
+		obstacles = {
+			{
+				id = "boulder",
+				weight = 1,
+				radius = 4,
+				pieces = {
+					{
+						size = Vector3.new(7, 5.5, 7),
+						at = Vector3.new(0, 2.2, 0),
+						color = C(118, 120, 124),
+						shape = BALL,
+						material = Enum.Material.Rock,
+					},
+					{
+						size = Vector3.new(4, 3, 4),
+						at = Vector3.new(1.6, 4.2, -1.2),
+						color = C(132, 134, 138),
+						shape = BALL,
+						material = Enum.Material.Rock,
+					},
+				},
+			},
+		},
+		mood = {
+			clockTime = 14,
+			ambient = C(60, 70, 55),
+			outdoorAmbient = C(105, 120, 95),
+			fogColor = C(140, 165, 130),
+			fogEnd = 520,
+			brightness = 2.2,
+		},
 		name = "Sahur Woods",
 		floorColor = C(72, 104, 62),
 		floorMaterial = Enum.Material.Grass,
@@ -110,6 +162,45 @@ Arenas.List = {
 	},
 	{
 		id = "shore",
+		obstacleDensity = 0.7,
+		obstacles = {
+			{
+				id = "rock_stack",
+				weight = 1,
+				radius = 4.2,
+				pieces = {
+					{
+						size = Vector3.new(7.5, 4, 6.5),
+						at = Vector3.new(0, 1.6, 0),
+						color = C(126, 128, 132),
+						shape = BALL,
+						material = Enum.Material.Rock,
+					},
+					{
+						size = Vector3.new(4.5, 3.5, 4.5),
+						at = Vector3.new(-0.8, 4.2, 0.6),
+						color = C(112, 114, 120),
+						shape = BALL,
+						material = Enum.Material.Rock,
+					},
+					{
+						size = Vector3.new(2.4, 2, 2.4),
+						at = Vector3.new(0.6, 6.2, -0.4),
+						color = C(140, 142, 146),
+						shape = BALL,
+						material = Enum.Material.Rock,
+					},
+				},
+			},
+		},
+		mood = {
+			clockTime = 13,
+			ambient = C(90, 95, 100),
+			outdoorAmbient = C(150, 155, 160),
+			fogColor = C(200, 215, 230),
+			fogEnd = 720,
+			brightness = 3.0,
+		},
 		name = "Tralalero Shore",
 		floorColor = C(224, 202, 152),
 		floorMaterial = Enum.Material.Sand,
@@ -173,6 +264,37 @@ Arenas.List = {
 	},
 	{
 		id = "freezer",
+		obstacleDensity = 0.8,
+		obstacles = {
+			{
+				id = "ice_wall",
+				weight = 1,
+				radius = 4.5,
+				pieces = {
+					{
+						size = Vector3.new(9, 7, 3),
+						at = Vector3.new(0, 3.5, 0),
+						color = C(178, 214, 236),
+						material = Enum.Material.Ice,
+					},
+					{
+						size = Vector3.new(3, 4.5, 3),
+						at = Vector3.new(3.6, 2.2, 0.8),
+						color = C(196, 226, 244),
+						material = Enum.Material.Ice,
+						rot = Vector3.new(0, 18, 8),
+					},
+				},
+			},
+		},
+		mood = {
+			clockTime = 8,
+			ambient = C(70, 85, 100),
+			outdoorAmbient = C(120, 145, 170),
+			fogColor = C(180, 205, 225),
+			fogEnd = 420,
+			brightness = 1.8,
+		},
 		name = "Frigo Freezer",
 		floorColor = C(196, 220, 236),
 		floorMaterial = Enum.Material.Ice,
@@ -228,6 +350,42 @@ Arenas.List = {
 	},
 	{
 		id = "airfield",
+		obstacleDensity = 0.85,
+		obstacles = {
+			{
+				id = "container",
+				weight = 1,
+				radius = 4.6,
+				pieces = {
+					{
+						size = Vector3.new(9, 5.5, 4.5),
+						at = Vector3.new(0, 2.75, 0),
+						color = C(150, 78, 54),
+						material = Enum.Material.CorrodedMetal,
+					},
+					{
+						size = Vector3.new(9.2, 0.5, 4.7),
+						at = Vector3.new(0, 5.5, 0),
+						color = C(96, 100, 104),
+						material = Enum.Material.Metal,
+					},
+					{
+						size = Vector3.new(0.4, 4.6, 4.6),
+						at = Vector3.new(4.5, 2.75, 0),
+						color = C(110, 58, 40),
+						material = Enum.Material.Metal,
+					},
+				},
+			},
+		},
+		mood = {
+			clockTime = 18,
+			ambient = C(60, 58, 62),
+			outdoorAmbient = C(95, 92, 100),
+			fogColor = C(110, 105, 115),
+			fogEnd = 360,
+			brightness = 1.6,
+		},
 		name = "Bombardiro Airfield",
 		floorColor = C(58, 60, 66),
 		floorMaterial = Enum.Material.Asphalt,
@@ -288,6 +446,37 @@ Arenas.List = {
 	},
 	{
 		id = "orchard",
+		obstacleDensity = 0.75,
+		obstacles = {
+			{
+				id = "haybale",
+				weight = 1,
+				radius = 4,
+				pieces = {
+					{
+						size = Vector3.new(6, 5.5, 5.5),
+						at = Vector3.new(0, 2.75, 0),
+						color = C(198, 170, 90),
+						shape = CYL,
+						material = Enum.Material.Grass,
+					},
+					{
+						size = Vector3.new(6.2, 1.2, 1.2),
+						at = Vector3.new(0, 2.75, 0),
+						color = C(150, 126, 66),
+						shape = CYL,
+					},
+				},
+			},
+		},
+		mood = {
+			clockTime = 15,
+			ambient = C(70, 80, 60),
+			outdoorAmbient = C(120, 135, 100),
+			fogColor = C(170, 190, 150),
+			fogEnd = 620,
+			brightness = 2.4,
+		},
 		name = "Glorbo Orchard",
 		floorColor = C(94, 138, 70),
 		floorMaterial = Enum.Material.LeafyGrass,
@@ -357,6 +546,43 @@ Arenas.List = {
 	},
 	{
 		id = "cafe",
+		obstacleDensity = 0.8,
+		obstacles = {
+			{
+				id = "counter",
+				weight = 1,
+				radius = 4.4,
+				pieces = {
+					{
+						size = Vector3.new(9, 4, 3.2),
+						at = Vector3.new(0, 2, 0),
+						color = C(96, 66, 46),
+						material = Enum.Material.Wood,
+					},
+					{
+						size = Vector3.new(9.6, 0.5, 3.8),
+						at = Vector3.new(0, 4.2, 0),
+						color = C(140, 100, 68),
+						material = Enum.Material.Marble,
+					},
+					{
+						size = Vector3.new(1.6, 1.6, 1.6),
+						at = Vector3.new(-2.6, 5.2, 0),
+						color = C(240, 236, 228),
+						shape = CYL,
+						rot = Vector3.new(0, 0, 90),
+					},
+				},
+			},
+		},
+		mood = {
+			clockTime = 20,
+			ambient = C(75, 65, 58),
+			outdoorAmbient = C(105, 90, 80),
+			fogColor = C(90, 75, 68),
+			fogEnd = 300,
+			brightness = 1.4,
+		},
 		name = "Cappuccino Cafe",
 		floorColor = C(226, 216, 200),
 		floorMaterial = Enum.Material.Marble,

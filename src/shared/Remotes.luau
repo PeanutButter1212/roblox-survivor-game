@@ -22,6 +22,16 @@ local NAMES = {
 	"OpenStageSelect",
 	-- client -> server: the player picked stage N to play next (clamped server-side).
 	"SelectStage",
+	-- server -> client: the player clicked an egg pedestal; open the pet shop. Carries the
+	-- clicked egg's id so the shop can highlight and scroll to it.
+	"OpenPetShop",
+	-- client -> server: the player wants to open egg <id> with coins. The server rolls it.
+	"HatchEgg",
+	-- client -> server: toggle pet <id> in/out of the player's active slots.
+	"EquipPet",
+	-- server -> client: the player's pet state changed. Carries { owned, equipped, hatched }
+	-- where `hatched` (optional) is the pet a just-opened egg produced, for the reveal.
+	"PetsChanged",
 }
 
 local Remotes = {}

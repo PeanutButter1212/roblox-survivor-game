@@ -32,9 +32,14 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 | `Enemy` | One enemy: assembles its brainrot's body from `data/Enemies`, health, movement (CFrame-driven), damage feedback, contact cooldown. |
 | `CoinManager` | Coin pickups for **one** stage instance: drops, bobbing, magnet-to-player, expiry. Bound to one profile so a drop can only pay its owner. |
 | `CombatService` | Stateless. Fires one player's auto-weapons at enemies in their own instance. |
+| `PetService` | Every player's pets: what they've hatched, which are equipped, the live models, and both hatch paths (coins and Robux). Owns `ProcessReceipt`. |
+| `Pet` | One live companion: model, orbit around its owner, attack timer. |
 | `ProgressionService` | Registry of PlayerProfiles + level-up/upgrade logic. Queues picks, freezes the run, applies the choice, unfreezes. |
 | `PlayerProfile` | One player's progression: XP, level, stat multipliers, owned weapons, lobby/level flag, skill levels, coins. |
-| `LevelManager` | Builds the lobby platform and the portal. Touching the portal starts a run. |
+| `LevelManager` | Builds the lobby room (floor, walls, spawn dais), the portal arch and the stage-select station. Touching the portal starts a run. Exposes `update(dt)` for the portal swirl. |
+| `LobbyDecor` | Shared builders for lobby furniture: anchored parts, and the frame/plinth/light that turns a bare interaction slab into a station. |
+| `LobbyGallery` | The brainrot hall along the back of the lobby — one pedestal per `data/Enemies` row, built from the same bodies at half scale. |
+| `EggStands` | The egg pedestals along the +X wall — one per `data/Eggs` row, carrying that egg's own body. Exposes `update(dt)` for the idle bob/spin. |
 | `SkillTreeService` | The lobby skill-tree board; **validates every purchase server-side**. |
 | `DailyRewardService` | Once-per-UTC-day login bonus, streak-scaled. Call `grantIfDue` after the save loads. |
 | `DataService` | DataStore save/load + autosave + `BindToClose`. |
@@ -44,12 +49,15 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 `InLevel` attribute) · `HudController` (health, XP, level, timer, coins) ·
 `UpgradeSpinController` (the three reels) · `SkillTreeController` (the visual node tree) ·
 `StageSelectController` (picker + portal door display) · `DailyBonusController` (toast) ·
+`AtmosphereController` (Lighting: lobby preset + each stage's mood) ·
+`PetShopController` (eggs, published odds, collection) ·
 `Icons` (UI icons drawn from Frames — nothing here can upload an image asset).
 
 ### `src/shared` → ReplicatedStorage.Shared
 `GameConfig` (world layout, ramp, coin economy, daily rewards) · `Remotes` (server creates
 the RemoteEvents, client waits for them) · `util/` (`Class`, `RandomUtil`) ·
-`data/` (`Stages`, `Skills`, `Upgrades`, `Weapons`, `Rarities`, `Enemies`, `Arenas`).
+`data/` (`Stages`, `Skills`, `Upgrades`, `Weapons`, `Rarities`, `Enemies`, `Arenas`,
+`Pets`, `Eggs`).
 
 Instance mapping lives in `default.project.json`.
 
@@ -68,8 +76,34 @@ Instance mapping lives in `default.project.json`.
   feet, -Z forward); `Enemy` assembles them, welded to one anchored hitbox so a frame
   replicates one CFrame per enemy rather than one per limb. Keep that invariant. Arena
   props in `data/Arenas` are authored the same way.
-- **Arena props never collide.** Enemies chase in a straight line, so anything solid to
-  the player but not to the swarm reads as a bug. Decoration only.
+- **Props never collide; obstacles always do.** A theme scatters both. Props are pure
+  decoration. Obstacles are solid AND recorded on the Arena, so `Enemy:steer` pushes the
+  swarm clear of them via `Arena:resolveObstacles`. Cover that stopped the player but not
+  the swarm would read as a bug — if you add a solid thing, the enemies must respect it.
+- **Nothing may shoot further than the camera can see.** `GameConfig.Camera` and
+  `GameConfig.Combat.MaxTargetRange` are one decision: the framing decides the play radius,
+  weapon and pet ranges are authored inside it, and `GameConfig.targetRange()` clamps as
+  the invariant. Moving the camera means revisiting that number.
+- **Enemy behaviour is data.** A bestiary row's `behaviour` picks chase / charger /
+  circler / splitter; the tuning lives in `GameConfig.Enemies`. `Enemy:steer` dispatches on
+  it — never branch on a specific enemy id.
+- **Lighting is client-side.** `Lighting` is one shared instance but every player is on
+  their own stage, so a server-side change drags everyone into one player's weather. Stage
+  moods live on the theme (`data/Arenas`) and are applied by `AtmosphereController`.
+- **Eggs and pets are bodies too.** Both carry a `body` piece list authored the same way
+  enemies and props are, so `EggStands` and the shop show the real thing rather than an
+  icon. Two stacked spheres make an egg on purpose — a single non-uniform `Ball` is at the
+  engine's mercy.
+- **Gacha odds are derived, never written.** `Eggs.odds` computes percentages from the
+  same weights `Eggs.roll` uses, and the shop UI renders that. Roblox requires the odds of
+  paid random items to be disclosed, so a second hand-maintained copy that could drift is
+  not acceptable. Never hardcode a percentage.
+- **`ProcessReceipt` grants, then saves, then reports.** It may only return
+  `PurchaseGranted` once the pet is persisted; anything else returns `NotProcessedYet` so
+  Roblox re-delivers the receipt. Returning granted early means a player pays and keeps
+  nothing.
+- **The lobby is one fixed room.** It's shared, so it can't take a per-player theme the way
+  an arena does. Its palette and dimensions are `GameConfig.Lobby` / `GameConfig.World`.
 - **One Heartbeat loop**, in `init.server.luau`. Do not add `RunService` loops elsewhere;
   have the owning service expose `update(dt)` and call it from there.
 - **Server is authoritative.** Anything a client asks for over a RemoteEvent (upgrade

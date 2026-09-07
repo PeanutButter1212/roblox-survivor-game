@@ -11,6 +11,19 @@ GameConfig.World = {
 	LobbyCenter = Vector3.new(0, 0, 360),
 	PortalPosition = Vector3.new(0, 5, 330), -- on the lobby platform, facing the arena
 	ArenaSpawnOffset = Vector3.new(0, 8, 0), -- where a player lands relative to their arena's origin
+	LobbySize = 90, -- the lobby floor is this many studs square
+	LobbyWallHeight = 24,
+}
+
+-- The lobby's own surfaces. Arenas get theirs from data/Arenas themes; the lobby is one
+-- fixed room, so its palette lives here.
+GameConfig.Lobby = {
+	FloorColor = Color3.fromRGB(48, 52, 66),
+	InlayColor = Color3.fromRGB(64, 70, 90),
+	WallColor = Color3.fromRGB(38, 41, 54),
+	TrimColor = Color3.fromRGB(120, 200, 255),
+	PortalColor = Color3.fromRGB(150, 90, 255),
+	FrameColor = Color3.fromRGB(58, 62, 80),
 }
 
 -- Arena appearance/bounds shared by every stage (the size itself is per-stage).
@@ -22,9 +35,34 @@ GameConfig.Arena = {
 	WallColor = Color3.fromRGB(35, 38, 48),
 }
 
+-- The top-down camera, and the play radius it implies. These two are one decision: the
+-- camera decides how much ground a player can see, and nothing in combat may reach past
+-- it. Shooting something you have never seen on screen reads as the game firing at
+-- nothing, which is exactly what a long weapon range used to do here.
+--
+-- At Height 72 / Back 26 the camera sits ~76 studs from the player; with Roblox's default
+-- 70-degree vertical FOV that puts roughly 53 studs of ground above and below them on
+-- screen. MaxTargetRange is set just inside that.
+GameConfig.Camera = {
+	Height = 72,
+	Back = 26,
+}
+
+GameConfig.Combat = {
+	MaxTargetRange = 50, -- no weapon or pet may acquire a target further away than this
+}
+
+-- Clamps a weapon or pet's range to what the player can actually see. Weapon data is
+-- authored inside the limit already; this is the invariant that keeps it that way.
+function GameConfig.targetRange(range: number): number
+	return math.min(range, GameConfig.Combat.MaxTargetRange)
+end
+
 -- Enemy properties that don't vary by stage (HP/speed/contact damage are per-stage).
 GameConfig.Enemies = {
-	SpawnRadius = 80, -- how far from the player they try to appear
+	-- Just outside the visible area: enemies appear off screen and walk into view, rather
+	-- than materialising in front of the player or lurking somewhere unseeable.
+	SpawnRadius = 58, -- how far from the player they try to appear
 	ContactRange = 5,
 	ContactCooldown = 0.6, -- seconds between hits from the same enemy
 	XPReward = 5,
@@ -35,13 +73,49 @@ GameConfig.Enemies = {
 	-- once it's spent are single coloured blocks instead. Head count (and therefore
 	-- difficulty) is never reduced — only how much of the swarm is fully modelled.
 	DetailBudget = 420,
+	-- Per-behaviour tuning (see the `behaviour` field on data/Enemies rows). Kept here so
+	-- a bestiary row stays one line of behaviour rather than a block of numbers.
+	Charger = {
+		ApproachFactor = 0.7, -- speed multiplier while closing in
+		TriggerRange = 26, -- winds up once this close
+		WindUp = 0.65, -- seconds stood still, telegraphing the dash
+		DashFactor = 3.2, -- speed multiplier during the dash
+		DashTime = 0.7,
+		Cooldown = 1.1, -- seconds of normal approach before it may wind up again
+	},
+	Circler = {
+		Orbit = 17, -- distance it tries to hold
+		Tolerance = 4, -- closes in or backs off outside this band
+		StrafeFactor = 0.95, -- speed multiplier while circling
+	},
+	Splitter = {
+		Children = 2,
+		HealthFactor = 0.35,
+		ScaleFactor = 0.55,
+		SpreadRadius = 4,
+	},
 }
 
 GameConfig.Progression = {
 	BaseXPToLevel = 20,
 	XPGrowth = 1.35, -- each level needs this much more XP than the last
 	UpgradeOptions = 3, -- how many choices the slot machine offers per level
+	-- Normally the picker offers stage 1 .. highest cleared + 1. Turning this on opens
+	-- every stage up to StageCeiling instead, which is what you want while testing a
+	-- late-stage map without grinding nine clears to see it. Stages are endless, so an
+	-- "all stages" list still needs a bound.
+	UnlockAllStages = true,
+	StageCeiling = 30,
 }
+
+-- The highest stage a player may currently select, given how far they've cleared. Server
+-- and client both go through this so the picker can't show a stage the server refuses.
+function GameConfig.highestSelectableStage(maxStageCleared: number): number
+	if GameConfig.Progression.UnlockAllStages then
+		return GameConfig.Progression.StageCeiling
+	end
+	return maxStageCleared + 1
+end
 
 -- Coin economy. Coins are the soft currency earned by clearing stages and spent in the
 -- lobby skill tree. First clears pay full; replaying a beaten stage pays a fraction, so

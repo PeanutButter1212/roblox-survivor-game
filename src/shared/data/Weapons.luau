@@ -3,6 +3,10 @@
 -- Base weapon definitions. A weapon is "granted" at a rarity power, which scales its
 -- damage so a Legendary unlock of a gun hits far harder than a Rare one. Add new
 -- guns by adding rows to `Defs`.
+--
+-- Ranges are authored inside GameConfig.Combat.MaxTargetRange on purpose: a gun that
+-- outranges the camera fires at enemies the player cannot see, which just looks broken.
+-- Range still separates the guns, it just does so within sight.
 
 export type WeaponDef = {
 	id: string,
@@ -26,7 +30,7 @@ Weapons.Defs = {
 		tint = Color3.fromRGB(150, 168, 200),
 		baseDamage = 8,
 		fireInterval = 0.7,
-		range = 60,
+		range = 44,
 		targets = 1,
 	},
 	smg = {
@@ -36,7 +40,7 @@ Weapons.Defs = {
 		tint = Color3.fromRGB(120, 190, 235),
 		baseDamage = 5,
 		fireInterval = 0.22,
-		range = 50,
+		range = 38,
 		targets = 1,
 	},
 	shotgun = {
@@ -46,7 +50,7 @@ Weapons.Defs = {
 		tint = Color3.fromRGB(240, 140, 70),
 		baseDamage = 6,
 		fireInterval = 1.0,
-		range = 35,
+		range = 24,
 		targets = 4,
 	},
 	rifle = {
@@ -56,7 +60,7 @@ Weapons.Defs = {
 		tint = Color3.fromRGB(200, 130, 235),
 		baseDamage = 20,
 		fireInterval = 0.9,
-		range = 95,
+		range = 50,
 		targets = 1,
 	},
 } :: { [string]: WeaponDef }

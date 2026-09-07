@@ -38,6 +38,10 @@ export type EnemyDef = {
 	damageMult: number,
 	xpMult: number,
 	nametag: boolean, -- floating name; reserved for the elites so we don't ship 80 BillboardGuis
+	-- How it moves. "chase" walks straight at you; "charger" closes, stops to telegraph,
+	-- then dashes; "circler" holds a ring around you and strafes; "splitter" chases and
+	-- breaks into smaller copies when killed. Tuning lives in GameConfig.Enemies.
+	behaviour: string,
 	body: { Piece },
 }
 
@@ -61,6 +65,7 @@ Enemies.List = {
 		damageMult = 1.0,
 		xpMult = 1.0,
 		nametag = false,
+		behaviour = "chase",
 		body = {
 			{ size = Vector3.new(0.5, 1.2, 0.5), at = Vector3.new(-0.6, 0.6, 0), color = C(92, 64, 40) },
 			{ size = Vector3.new(0.5, 1.2, 0.5), at = Vector3.new(0.6, 0.6, 0), color = C(92, 64, 40) },
@@ -105,6 +110,7 @@ Enemies.List = {
 		damageMult = 0.7,
 		xpMult = 0.8,
 		nametag = false,
+		behaviour = "chase",
 		body = {
 			{ size = Vector3.new(1.8, 2.4, 1.6), at = Vector3.new(0, 1.2, 0), color = C(245, 214, 70) },
 			{ size = Vector3.new(1.5, 1.5, 1.5), at = Vector3.new(0, 2.8, 0), color = C(120, 84, 58), shape = BALL },
@@ -147,6 +153,7 @@ Enemies.List = {
 		damageMult = 1.15,
 		xpMult = 1.3,
 		nametag = false,
+		behaviour = "chase",
 		body = {
 			{ size = Vector3.new(0.45, 1.6, 0.45), at = Vector3.new(-0.7, 0.8, 0), color = C(110, 78, 48) },
 			{ size = Vector3.new(0.45, 1.6, 0.45), at = Vector3.new(0.7, 0.8, 0), color = C(110, 78, 48) },
@@ -191,6 +198,7 @@ Enemies.List = {
 		damageMult = 0.9,
 		xpMult = 1.2,
 		nametag = false,
+		behaviour = "charger",
 		body = {
 			{ size = Vector3.new(0.5, 1.3, 0.5), at = Vector3.new(-1.0, 0.95, 0), color = C(60, 110, 190) },
 			{ size = Vector3.new(0.5, 1.3, 0.5), at = Vector3.new(0, 0.95, 0.3), color = C(60, 110, 190) },
@@ -234,6 +242,7 @@ Enemies.List = {
 		damageMult = 1.0,
 		xpMult = 1.1,
 		nametag = false,
+		behaviour = "circler",
 		body = {
 			{ size = Vector3.new(0.6, 1.0, 0.6), at = Vector3.new(-0.7, 0.5, 0), color = C(90, 62, 40) },
 			{ size = Vector3.new(0.6, 1.0, 0.6), at = Vector3.new(0.7, 0.5, 0), color = C(90, 62, 40) },
@@ -268,6 +277,7 @@ Enemies.List = {
 		damageMult = 1.3,
 		xpMult = 1.5,
 		nametag = false,
+		behaviour = "chase",
 		body = {
 			{ size = Vector3.new(0.6, 2.0, 0.6), at = Vector3.new(-0.8, 1.0, 0), color = C(214, 178, 140) },
 			{ size = Vector3.new(0.6, 2.0, 0.6), at = Vector3.new(0.8, 1.0, 0), color = C(214, 178, 140) },
@@ -314,6 +324,7 @@ Enemies.List = {
 		damageMult = 1.0,
 		xpMult = 1.2,
 		nametag = false,
+		behaviour = "circler",
 		body = {
 			{ size = Vector3.new(0.4, 0.8, 0.4), at = Vector3.new(-0.7, 0.4, -0.9), color = C(215, 95, 80) },
 			{ size = Vector3.new(0.4, 0.8, 0.4), at = Vector3.new(0.7, 0.4, -0.9), color = C(215, 95, 80) },
@@ -367,6 +378,7 @@ Enemies.List = {
 		damageMult = 1.6,
 		xpMult = 2.0,
 		nametag = false,
+		behaviour = "chase",
 		body = {
 			{ size = Vector3.new(0.8, 1.4, 0.8), at = Vector3.new(-0.9, 0.7, 0), color = C(70, 140, 78) },
 			{ size = Vector3.new(0.8, 1.4, 0.8), at = Vector3.new(0.9, 0.7, 0), color = C(70, 140, 78) },
@@ -417,6 +429,7 @@ Enemies.List = {
 		damageMult = 1.5,
 		xpMult = 2.4,
 		nametag = true,
+		behaviour = "chase",
 		body = {
 			{ size = Vector3.new(0.6, 1.2, 0.6), at = Vector3.new(-1.0, 0.6, -0.8), color = C(200, 168, 120) },
 			{ size = Vector3.new(0.6, 1.2, 0.6), at = Vector3.new(1.0, 0.6, -0.8), color = C(200, 168, 120) },
@@ -470,6 +483,7 @@ Enemies.List = {
 		damageMult = 1.8,
 		xpMult = 2.2,
 		nametag = true,
+		behaviour = "charger",
 		body = {
 			{ size = Vector3.new(2.0, 1.8, 5.0), at = Vector3.new(0, 2.4, 0), color = C(72, 122, 66) },
 			{ size = Vector3.new(1.7, 0.5, 4.4), at = Vector3.new(0, 1.7, 0), color = C(188, 196, 150) },
@@ -529,6 +543,7 @@ Enemies.List = {
 		damageMult = 1.7,
 		xpMult = 2.8,
 		nametag = true,
+		behaviour = "splitter",
 		body = {
 			{ size = Vector3.new(0.8, 1.0, 0.8), at = Vector3.new(-1.2, 0.5, -1.5), color = C(48, 110, 52) },
 			{ size = Vector3.new(0.8, 1.0, 0.8), at = Vector3.new(1.2, 0.5, -1.5), color = C(48, 110, 52) },
@@ -567,6 +582,7 @@ Enemies.List = {
 		damageMult = 1.9,
 		xpMult = 2.0,
 		nametag = true,
+		behaviour = "charger",
 		body = {
 			{ size = Vector3.new(0.5, 1.4, 0.5), at = Vector3.new(-0.6, 0.7, 0), color = C(40, 40, 45) },
 			{ size = Vector3.new(0.5, 1.4, 0.5), at = Vector3.new(0.6, 0.7, 0), color = C(40, 40, 45) },
@@ -610,6 +626,7 @@ Enemies.List = {
 		damageMult = 1.3,
 		xpMult = 1.8,
 		nametag = false,
+		behaviour = "circler",
 		body = {
 			{ size = Vector3.new(0.45, 2.0, 0.45), at = Vector3.new(-0.45, 1.0, 0), color = C(222, 190, 156) },
 			{ size = Vector3.new(0.45, 2.0, 0.45), at = Vector3.new(0.45, 1.0, 0), color = C(222, 190, 156) },
@@ -665,6 +682,7 @@ Enemies.List = {
 		damageMult = 2.1,
 		xpMult = 3.0,
 		nametag = true,
+		behaviour = "charger",
 		body = {
 			{ size = Vector3.new(1.8, 1.8, 5.0), at = Vector3.new(0, 2.6, 0), color = C(238, 240, 242) },
 			{ size = Vector3.new(7.8, 0.35, 1.8), at = Vector3.new(0, 2.8, 0.5), color = C(225, 228, 232) },

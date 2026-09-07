@@ -23,7 +23,11 @@ export type Spec = {
 -- Creates the part, positioned and oriented, but deliberately NOT parented: the caller
 -- decides where it lives and whether it stays anchored (Enemy welds its pieces to a
 -- moving hitbox, Arena leaves props anchored where they land).
-function Piece.build(spec: Spec, base: CFrame, baseOffset: number): BasePart
+--
+-- `scale` shrinks or grows the whole spec about its base, which is how the lobby gallery
+-- shows full brainrots on a pedestal without them filling the room.
+function Piece.build(spec: Spec, base: CFrame, baseOffset: number, scale: number?): BasePart
+	local factor = scale or 1
 	-- A Part's Shape property accepts Wedge but doesn't render one, so wedges need the
 	-- dedicated class. Getting this wrong fails silently as a box.
 	local isWedge = spec.shape == Enum.PartType.Wedge
@@ -32,7 +36,7 @@ function Piece.build(spec: Spec, base: CFrame, baseOffset: number): BasePart
 		(part :: Part).Shape = spec.shape or Enum.PartType.Block
 	end
 
-	part.Size = spec.size
+	part.Size = spec.size * factor
 	part.Color = spec.color
 	part.Material = spec.material or Enum.Material.SmoothPlastic
 	part.Anchored = true
@@ -41,7 +45,7 @@ function Piece.build(spec: Spec, base: CFrame, baseOffset: number): BasePart
 	part.CanTouch = false
 	part.CastShadow = false
 
-	local offset = CFrame.new(spec.at.X, spec.at.Y + baseOffset, spec.at.Z)
+	local offset = CFrame.new(spec.at.X * factor, spec.at.Y * factor + baseOffset, spec.at.Z * factor)
 	if spec.rot then
 		offset *= CFrame.Angles(math.rad(spec.rot.X), math.rad(spec.rot.Y), math.rad(spec.rot.Z))
 	end

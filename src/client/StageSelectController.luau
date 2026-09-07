@@ -11,6 +11,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
+local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local StageSelectController = Class.new()
@@ -160,7 +161,9 @@ function StageSelectController:render()
 
 	local maxStage = self.player:GetAttribute("MaxStage") or 0
 	local selected = self.player:GetAttribute("Stage") or 1
-	local highestUnlocked = maxStage + 1 -- can always reach one past your best
+	-- Same helper the server clamps with, so the grid can never offer a stage the server
+	-- would refuse (and vice versa, so nothing is silently unreachable).
+	local highestUnlocked = GameConfig.highestSelectableStage(maxStage)
 
 	for stage = 1, highestUnlocked do
 		local button = Instance.new("TextButton")

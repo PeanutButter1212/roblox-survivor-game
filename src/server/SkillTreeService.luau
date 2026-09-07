@@ -11,6 +11,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local LobbyDecor = require(script.Parent:WaitForChild("LobbyDecor"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Skills = require(Shared:WaitForChild("data"):WaitForChild("Skills"))
 
@@ -43,8 +44,11 @@ function SkillTreeService:buildBoard()
 	-- Stand it at the side of the lobby platform, facing the spawn.
 	board.Position = center + Vector3.new(-26, 4.5, 0)
 	board.Material = Enum.Material.SmoothPlastic
-	board.Color = Color3.fromRGB(40, 44, 60)
+	board.Color = Color3.fromRGB(30, 28, 44)
 	board.Parent = Workspace
+
+	-- Same framing the stage-select station gets, in this board's own gold accent.
+	LobbyDecor.frameBoard(board, Color3.fromRGB(255, 205, 90))
 
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(220, 80)

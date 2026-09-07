@@ -22,14 +22,16 @@ local function lerp(a: number, b: number, t: number): number
 	return a + (b - a) * t
 end
 
--- Creates and starts a run. `combat` is the shared CombatService; `onKill(player, xp)`
--- routes enemy kills into XP (the server wires it to ProgressionService).
+-- Creates and starts a run. `combat` is the shared CombatService and `pets` the shared
+-- PetService (both stateless from here); `onKill(player, xp)` routes enemy kills into XP
+-- (the server wires it to ProgressionService).
 function StageInstance.new(
 	player: Player,
 	profile: any,
 	config: any,
 	origin: Vector3,
 	combat: any,
+	pets: any,
 	onKill: (Player, number) -> ()
 )
 	local self = setmetatable({}, StageInstance)
@@ -37,6 +39,7 @@ function StageInstance.new(
 	self.profile = profile
 	self.config = config
 	self.combat = combat
+	self.pets = pets
 	self.active = true
 	self.elapsed = 0
 	self.timeLeft = config.duration
@@ -115,6 +118,9 @@ function StageInstance:update(dt: number)
 
 	self.enemyManager:update(dt, target, maxAlive, interval, self.elapsed)
 	self.combat:updatePlayer(self.profile, self.enemyManager, dt)
+	-- Pets fire from here rather than from PetService's own loop, so they freeze with
+	-- everything else while the player is picking an upgrade.
+	self.pets:updateCombat(self.profile, self.enemyManager, dt)
 	self.coinManager:update(dt, target)
 
 	local whole = math.ceil(math.max(0, self.timeLeft))

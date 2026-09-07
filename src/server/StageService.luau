@@ -19,10 +19,11 @@ local SLOT_SPACING = 2500 -- distance between adjacent arena slots (> max arena 
 
 -- Creates the service. `progression` is the profile registry; `combat` is the shared
 -- CombatService helper used by each instance.
-function StageService.new(progression: any, combat: any)
+function StageService.new(progression: any, combat: any, pets: any)
 	local self = setmetatable({}, StageService)
 	self.progression = progression
 	self.combat = combat
+	self.pets = pets
 	self.instances = {} :: { [Player]: any }
 	self.slotOf = {} :: { [Player]: number }
 	self.usedSlots = {} :: { [number]: boolean }
@@ -65,7 +66,7 @@ function StageService:enterStage(player: Player)
 		self.progression:addXP(killer, xp)
 	end
 
-	self.instances[player] = StageInstance.new(player, profile, config, origin, self.combat, onKill)
+	self.instances[player] = StageInstance.new(player, profile, config, origin, self.combat, self.pets, onKill)
 	self.slotOf[player] = slot
 end
 
