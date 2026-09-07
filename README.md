@@ -213,6 +213,8 @@ actually paces, so turn it off before judging balance.
   each theme's `mood` (its Lighting preset). Add a map = add a row.
 - `src/shared/data/Stages.luau` — per-stage size, duration, enemy stats, and which theme it
   uses.
+- `src/shared/data/Pickups.luau` — the XP orb and the coin: reach, magnet speed, lifetime,
+  cap and appearance.
 - `src/shared/data/Pets.luau` — companion stats and bodies; `Pets.MaxEquipped` sets how
   many follow you.
 - `src/shared/data/Eggs.luau` — egg prices, Robux product ids, bodies, and drop pools.
@@ -231,7 +233,7 @@ Code is organised into small, documented OOP classes (one responsibility each).
 
 | Folder        | Syncs into Studio at          | What's there |
 | ------------- | ----------------------------- | ------------ |
-| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy (+EnemyManager), CoinManager, CombatService, ProgressionService, PlayerProfile, PetService + Pet, LevelManager, LobbyDecor, LobbyGallery, EggStands, SkillTreeService, DailyRewardService, DataService |
+| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy (+EnemyManager), PickupManager, ProjectileManager, CombatService, ProgressionService, PlayerProfile, PetService + Pet, LevelManager, LobbyDecor, LobbyGallery, EggStands, SkillTreeService, DailyRewardService, DataService |
 | `src/client`  | StarterPlayerScripts > Client | AtmosphereController, CameraController, HudController, UpgradeSpinController, SkillTreeController, StageSelectController, PetShopController, DailyBonusController, plus `Icons` (UI icons drawn from Frames) |
 | `src/shared`  | ReplicatedStorage > Shared    | `GameConfig`, `Remotes`, `util/` (Class, RandomUtil, Piece), `data/` (Stages, Enemies, Arenas, Pets, Eggs, Weapons, Upgrades, Skills, Rarities) |
 

@@ -8,7 +8,7 @@ local GameConfig = {}
 -- Bump this with every release and keep it matching the git tag (see CHANGELOG.md). It's
 -- printed on server start, which is how you tell what a running Studio session actually
 -- has in it versus what's in the repo.
-GameConfig.Version = "2.9"
+GameConfig.Version = "2.10"
 
 -- World layout. Each player's arena is built far away at its own slot (see
 -- StageService); these are the shared lobby + the spawn offset within an arena.
@@ -171,11 +171,9 @@ GameConfig.Coins = {
 	-- much past this makes the skill tree trivially cheap.
 	DropChance = 0.25, -- fraction of kills that leave a coin behind
 	DropBase = 2, -- coins in a drop from a baseline brainrot, scaled by its xpMult
-	DropLifetime = 12, -- seconds an uncollected drop survives
-	PickupRadius = 6, -- collected once the player is this close
-	MagnetRadius = 26, -- starts flying toward the player from this far out
-	MagnetSpeed = 46, -- studs/second once it's flying
-	MaxLiveDrops = 40, -- hard cap per run, so an unlucky AFK can't carpet the arena
+	-- How a coin physically behaves once dropped — reach, speed, lifetime, cap — lives in
+	-- data/Pickups alongside the XP orb's, since that's shared pickup behaviour rather
+	-- than part of the coin economy.
 }
 
 -- Coins in a drop from a brainrot whose XP multiplier is `xpMult`. Tying the two
