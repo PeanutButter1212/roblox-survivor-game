@@ -285,21 +285,30 @@ runtime behaviour is only ever confirmed by playing it in Studio.
 them. What you control is the cost of a single server and of the data layer.
 
 The design's scaling cost is that **every player gets their own arena in the same server**.
-Roughly per active player: ~420 enemy parts (`GameConfig.Enemies.DetailBudget`), ~200 arena
-props and obstacles, up to 90 XP orbs, 40 coins, 60 projectiles, and their pets — call it
-**1,300 parts each**. Ten players is ~13,000 replicating parts; twenty is not viable.
+Roughly per active player: up to ~560 enemy parts (`GameConfig.Enemies.DetailBudget` caps
+*cosmetic* pieces at 420, and each of up to 140 live enemies also owns a root part), ~200
+arena props and obstacles, up to 90 XP orbs, 40 coins, 60 projectiles, and their pets — call
+it **1,300 parts each**. Ten players is ~13,000 replicating parts; twenty is not viable.
 
 Two place settings do most of the work, and neither lives in this repo:
 
 - **`MaxPlayers` should be low** — 8 to 12. Let Roblox spin up more servers rather than
   packing more arenas into one.
-- **Turn on `StreamingEnabled`.** Arenas are built far apart and players never need to see
-  each other's, so streaming is close to free here and is the single biggest win available.
+- **`StreamingEnabled` is the biggest available win, but it is not a free toggle.** Arenas
+  sit far apart and nobody needs to see anyone else's, so the shape fits — but two things
+  in this codebase have to change first. `StageSelectController` builds the portal's
+  "▶ STAGE N" billboard *on the client*, parented to a server-replicated part; a
+  streamed-out instance comes back without client-only changes, so the door display would
+  silently stop updating after the first run. And `StageInstance:teleportTo` moves a
+  character hundreds of studs in one frame, which wants `Player:RequestStreamAroundAsync`
+  first or the player can land before the arena floor exists.
 
 On the data side, note that leaderboard reads scale with the number of *servers*, not
 players — every server reads the same ordered stores on its own timer. Per-server budgets
-are fine, but `MemoryStoreService` is the better backing for a live leaderboard at real
-scale.
+are fine, and if that stops being true the usual answer is a `MemoryStoreService` sorted map
+*in front of* the DataStore rather than instead of it: MemoryStore is explicitly transient
+(items expire, 45 days maximum) and its quota is universe-wide rather than per-server, so it
+is a cache, not durable storage.
 
 ## Notes
 

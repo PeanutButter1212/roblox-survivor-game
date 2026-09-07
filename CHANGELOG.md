@@ -15,6 +15,12 @@ matched to what's in the repo.
 
 ---
 
+## v2.11 — Faster nearest-enemy queries
+getNearest kept a table per candidate and sorted the whole swarm, on the hottest path in
+the game. It now keeps a top-k list by insertion on squared distances: no sort, and a fixed
+allocation rather than one per candidate. Verified against the old implementation over
+4,000 random swarms. Also documents the per-server scaling shape in the README.
+
 ## v2.10 — XP is a collectable orb
 A kill now drops a blue XP orb where the brainrot fell instead of awarding XP outright, and
 it has to be walked to. Its magnet reach is deliberately shorter than a coin's, so levelling

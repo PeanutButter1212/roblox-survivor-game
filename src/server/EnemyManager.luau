@@ -139,9 +139,20 @@ end
 -- tables instead of one per enemy in range. Distances stay squared: ordering is identical
 -- and it saves a square root per enemy.
 function EnemyManager:getNearest(position: Vector3, range: number, count: number): { any }
+	-- The old collect-and-sort form returned an empty list for a non-positive count; this
+	-- one would index bestDist[0] and throw, from inside the shared Heartbeat loop, taking
+	-- every player's update down with it. No data row asks for 0 targets today, but adding
+	-- a weapon is supposed to be a data change, not a way to crash the server.
+	if count < 1 then
+		return {}
+	end
+
 	local best = table.create(count)
 	local bestDist = table.create(count)
 	local filled = 0
+	-- Squaring makes a negative range behave like its positive twin, where the old
+	-- distance comparison matched nothing. Unreachable — GameConfig.targetRange only
+	-- clamps downward and no row is negative — but it is a real change in meaning.
 	local rangeSq = range * range
 
 	for _, enemy in self.enemies do
