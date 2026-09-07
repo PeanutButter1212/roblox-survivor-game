@@ -43,6 +43,9 @@ function DataService:load(player: Player)
 		if data then
 			profile:load(data)
 		end
+		-- Reached the store, whether or not there was a save to find. Only now is this
+		-- profile safe to publish outward (see PlayerProfile.loaded).
+		profile:markLoaded()
 	else
 		warn("[DataService] load failed for " .. player.Name .. ": " .. tostring(data))
 	end

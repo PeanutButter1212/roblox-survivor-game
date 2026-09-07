@@ -100,6 +100,12 @@ server: the client asks to open an egg, and never says what it got.
 Add a pet with a row in `data/Pets.luau` and an entry in an egg's pool in `data/Eggs.luau`.
 Give an egg a body and it gets its own lobby pedestal automatically.
 
+**Leaderboards:** three panels on the lobby wall rank **highest stage**, **highest level**
+and **longest login streak** across everyone who has played. They refresh on a minute
+timer. Like saves, they need `Enable Studio Access to API Services` to do anything in
+Studio. Add a board with a row in `data/Leaderboards.luau` — it has to be a whole number
+that only goes up, which is why current coin balance isn't one.
+
 ## Coins, stages and progression
 
 **Coins** come from two places: brainrots sometimes drop them when they die (walk near one

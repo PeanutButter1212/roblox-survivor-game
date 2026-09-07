@@ -22,6 +22,7 @@ local DailyRewardService = require(script:WaitForChild("DailyRewardService"))
 local LobbyGallery = require(script:WaitForChild("LobbyGallery"))
 local PetService = require(script:WaitForChild("PetService"))
 local EggStands = require(script:WaitForChild("EggStands"))
+local LeaderboardService = require(script:WaitForChild("LeaderboardService"))
 
 local progression = ProgressionService.new()
 local combat = CombatService.new()
@@ -33,6 +34,7 @@ local _skillTree = SkillTreeService.new(progression)
 local dailyReward = DailyRewardService.new(progression)
 local _gallery = LobbyGallery.new() -- the brainrot hall along the back of the lobby
 local eggStands = EggStands.new() -- the egg pedestals along the +X wall
+local leaderboards = LeaderboardService.new(progression) -- the wall panels; runs its own slow timer
 
 -- A joining player gets a profile, their saved progression loaded over it, then their
 -- daily login bonus evaluated (granted once per day, growing with their streak).
@@ -68,6 +70,9 @@ end)
 -- Save everyone if the server shuts down.
 game:BindToClose(function()
 	dataService:saveAll()
+	-- After the saves: the boards are cosmetic and share the same short shutdown window,
+	-- so progression is persisted first and the last minute of board freshness second.
+	leaderboards:publishAll()
 end)
 
 dataService:startAutosave()

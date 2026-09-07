@@ -40,6 +40,7 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 | `LevelManager` | Builds the lobby room (floor, walls, spawn dais), the portal arch and the stage-select station. Touching the portal starts a run. Exposes `update(dt)` for the portal swirl. |
 | `LobbyDecor` | Shared builders for lobby furniture: anchored parts, and the frame/plinth/light that turns a bare interaction slab into a station. |
 | `LobbyGallery` | The brainrot hall along the back of the lobby — one pedestal per `data/Enemies` row, built from the same bodies at half scale. |
+| `LeaderboardService` | The lobby leaderboard panels, one OrderedDataStore per board (`data/Leaderboards`). Publishes and re-reads on its own minute timer, not the Heartbeat. |
 | `EggStands` | The egg pedestals along the +X wall — one per `data/Eggs` row, carrying that egg's own body. Exposes `update(dt)` for the idle bob/spin. |
 | `SkillTreeService` | The lobby skill-tree board; **validates every purchase server-side**. |
 | `DailyRewardService` | Once-per-UTC-day login bonus, streak-scaled. Call `grantIfDue` after the save loads. |
@@ -58,7 +59,7 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 `GameConfig` (world layout, ramp, coin economy, daily rewards) · `Remotes` (server creates
 the RemoteEvents, client waits for them) · `util/` (`Class`, `RandomUtil`) ·
 `data/` (`Stages`, `Skills`, `Upgrades`, `Weapons`, `Rarities`, `Enemies`, `Arenas`,
-`Pets`, `Eggs`, `Evolutions`).
+`Pets`, `Eggs`, `Evolutions`, `Leaderboards`).
 
 Instance mapping lives in `default.project.json`.
 
@@ -117,6 +118,10 @@ Instance mapping lives in `default.project.json`.
   weapons kept firing. See `Enemy:canReach` and `GameConfig.Enemies.ContactHeight`.
 - **The lobby is one fixed room.** It's shared, so it can't take a per-player theme the way
   an arena does. Its palette and dimensions are `GameConfig.Lobby` / `GameConfig.World`.
+- **Leaderboards rank only monotonic integers.** OrderedDataStore can't hold anything
+  else, and a stat that goes down (a coin *balance*) would rank whoever hoarded rather than
+  whoever played. Every read and write is wrapped — a board that can't reach its store
+  shows stale rows, never an error into the loop.
 - **One Heartbeat loop**, in `init.server.luau`. Do not add `RunService` loops elsewhere;
   have the owning service expose `update(dt)` and call it from there.
 - **Server is authoritative.** Anything a client asks for over a RemoteEvent (upgrade
