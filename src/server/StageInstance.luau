@@ -14,6 +14,7 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Arena = require(script.Parent:WaitForChild("Arena"))
 local EnemyManager = require(script.Parent:WaitForChild("EnemyManager"))
 local CoinManager = require(script.Parent:WaitForChild("CoinManager"))
+local ProjectileManager = require(script.Parent:WaitForChild("ProjectileManager"))
 
 local StageInstance = Class.new()
 
@@ -47,12 +48,15 @@ function StageInstance.new(
 
 	self.arena = Arena.new(origin, config.arenaSize, config.theme)
 	self.coinManager = CoinManager.new(self.arena.folder, profile, self.arena.center.Y)
+	self.projectiles = ProjectileManager.new(self.arena.folder)
 
 	-- The kill callback fans out: XP goes to the caller's handler (ProgressionService),
 	-- while any coins the brainrot was carrying drop where it fell.
 	self.enemyManager = EnemyManager.new(self.arena.folder, self.arena, config, function(killer, xp, position, coins)
 		onKill(killer, xp)
 		self.coinManager:drop(position, coins)
+	end, function(from, direction, damage, color)
+		self.projectiles:fire(from, direction, damage, color)
 	end)
 
 	player:SetAttribute("Stage", config.number)
@@ -121,6 +125,7 @@ function StageInstance:update(dt: number)
 	-- Pets fire from here rather than from PetService's own loop, so they freeze with
 	-- everything else while the player is picking an upgrade.
 	self.pets:updateCombat(self.profile, self.enemyManager, dt)
+	self.projectiles:update(dt, target)
 	self.coinManager:update(dt, target)
 
 	local whole = math.ceil(math.max(0, self.timeLeft))
@@ -142,6 +147,7 @@ function StageInstance:finish(result: string)
 	end
 	self.active = false
 	self.enemyManager:clearAll()
+	self.projectiles:clearAll()
 	self.coinManager:clearAll()
 	-- Releases the shield, the movement pin AND the pick queue together. A player can
 	-- end a run mid-pick (reset, or the swarm finishing them the frame before), and any
@@ -172,6 +178,7 @@ end
 -- Tears down the arena (called by StageService once the run is no longer active).
 function StageInstance:destroy()
 	self.enemyManager:clearAll()
+	self.projectiles:clearAll()
 	self.coinManager:clearAll()
 	self.arena:destroy()
 end

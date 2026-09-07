@@ -39,9 +39,15 @@ Fourteen brainrots, each with its own body, stat profile and **behaviour**:
   to. Stand still and you're hit; step aside and they miss.
 - **Circlers** — Bobrito Bandito, Trippi Troppi, Ballerina Cappuccina — hold a ring around
   you and strafe instead of piling in.
+- **Shooters** — Boneca Ambalabu, and the two bombers Bombardiro Crocodilo and Bombombini
+  Gusini — hold their distance and **fire back**. Their shots travel toward where you were
+  when they fired, so walking sideways beats them and standing still doesn't. They deal no
+  contact damage at all, so closing the gap is the counterplay.
 - **Glorbo Fruttodrillo splits** into smaller, faster watermelon chunks when killed.
 
-Fast glass cannons, slow walls, and elites with floating nametags. Each brainrot unlocks at
+Enemy damage also **ramps through a run**, not just health — the back half of a long stage
+is genuinely more dangerous rather than just more crowded. Fast glass cannons, slow walls,
+and elites with floating nametags. Each brainrot unlocks at
 a given stage, and early fodder's spawn weight decays as the heavies come online — so stage
 12 isn't still mostly Sahurs. One row in `data/Enemies.luau` per brainrot, behaviour
 included.

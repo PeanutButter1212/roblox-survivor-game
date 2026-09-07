@@ -38,9 +38,10 @@ export type EnemyDef = {
 	damageMult: number,
 	xpMult: number,
 	nametag: boolean, -- floating name; reserved for the elites so we don't ship 80 BillboardGuis
-	-- How it moves. "chase" walks straight at you; "charger" closes, stops to telegraph,
-	-- then dashes; "circler" holds a ring around you and strafes; "splitter" chases and
-	-- breaks into smaller copies when killed. Tuning lives in GameConfig.Enemies.
+	-- How it moves and fights. "chase" walks straight at you; "charger" closes, stops to
+	-- telegraph, then dashes; "circler" holds a ring and strafes, diving periodically;
+	-- "ranged" keeps its distance and shoots; "splitter" chases and breaks into smaller
+	-- copies when killed. Tuning lives in GameConfig.Enemies.
 	behaviour: string,
 	body: { Piece },
 }
@@ -277,7 +278,7 @@ Enemies.List = {
 		damageMult = 1.3,
 		xpMult = 1.5,
 		nametag = false,
-		behaviour = "chase",
+		behaviour = "ranged",
 		body = {
 			{ size = Vector3.new(0.6, 2.0, 0.6), at = Vector3.new(-0.8, 1.0, 0), color = C(214, 178, 140) },
 			{ size = Vector3.new(0.6, 2.0, 0.6), at = Vector3.new(0.8, 1.0, 0), color = C(214, 178, 140) },
@@ -483,7 +484,7 @@ Enemies.List = {
 		damageMult = 1.8,
 		xpMult = 2.2,
 		nametag = true,
-		behaviour = "charger",
+		behaviour = "ranged",
 		body = {
 			{ size = Vector3.new(2.0, 1.8, 5.0), at = Vector3.new(0, 2.4, 0), color = C(72, 122, 66) },
 			{ size = Vector3.new(1.7, 0.5, 4.4), at = Vector3.new(0, 1.7, 0), color = C(188, 196, 150) },
@@ -682,7 +683,7 @@ Enemies.List = {
 		damageMult = 2.1,
 		xpMult = 3.0,
 		nametag = true,
-		behaviour = "charger",
+		behaviour = "ranged",
 		body = {
 			{ size = Vector3.new(1.8, 1.8, 5.0), at = Vector3.new(0, 2.6, 0), color = C(238, 240, 242) },
 			{ size = Vector3.new(7.8, 0.35, 1.8), at = Vector3.new(0, 2.8, 0.5), color = C(225, 228, 232) },

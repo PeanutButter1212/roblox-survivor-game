@@ -94,6 +94,8 @@ function Enemy.new(def: any, position: Vector3, stats: Stats, parent: Instance, 
 	self.dashDir = nil :: Vector3?
 	self.spin = if math.random() < 0.5 then -1 else 1
 	self.lunging = false
+	-- Staggered like the lunge, so a firing line doesn't volley in unison.
+	self.shotTimer = GameConfig.Enemies.Ranged.ShotInterval * math.random()
 	-- Staggered so a group of circlers doesn't dive in unison.
 	self.lungeTimer = GameConfig.Enemies.Circler.LungeEvery * math.random()
 	self.pieces = {} :: { { part: BasePart, color: Color3 } }
@@ -245,6 +247,8 @@ function Enemy:circlerStep(dt: number, dir: Vector3, dist: number): Vector3
 			return dir * self.speed * cfg.LungeFactor
 		end
 		self.lunging = false
+		-- Staggered like the lunge, so a firing line doesn't volley in unison.
+		self.shotTimer = GameConfig.Enemies.Ranged.ShotInterval * math.random()
 		self.lungeTimer = cfg.LungeEvery
 	elseif self.lungeTimer <= 0 then
 		self.lunging = true
@@ -260,6 +264,41 @@ function Enemy:circlerStep(dt: number, dir: Vector3, dist: number): Vector3
 		return -dir * speed
 	end
 	return Vector3.new(-dir.Z, 0, dir.X) * self.spin * speed
+end
+
+-- A ranged enemy: holds its preferred firing distance rather than closing, backing off if
+-- the player walks it down. Its shots come from tryShoot, which EnemyManager drives.
+function Enemy:rangedStep(dir: Vector3, dist: number): Vector3
+	local cfg = GameConfig.Enemies.Ranged
+	if dist > cfg.Preferred + cfg.Tolerance then
+		return dir * self.speed * cfg.ApproachFactor
+	end
+	if dist < cfg.Preferred - cfg.Tolerance then
+		return -dir * self.speed * cfg.ApproachFactor
+	end
+	return Vector3.zero
+end
+
+-- Advances the shot timer. True means it may fire this frame; the caller decides whether
+-- the player is actually in range.
+function Enemy:tryShoot(dt: number): boolean
+	self.shotTimer -= dt
+	if self.shotTimer <= 0 then
+		self.shotTimer = GameConfig.Enemies.Ranged.ShotInterval
+		return true
+	end
+	return false
+end
+
+-- Whether this enemy attacks at range rather than by contact.
+function Enemy:isRanged(): boolean
+	return self.def.behaviour == "ranged"
+end
+
+-- Where its shots leave from: the middle of its body, so a Bombardiro's bombs don't spawn
+-- at its feet.
+function Enemy:muzzlePosition(): Vector3
+	return self.part.Position
 end
 
 -- Moves the enemy for one frame according to its behaviour, pushed clear of any arena
@@ -278,6 +317,8 @@ function Enemy:steer(dt: number, targetPos: Vector3, arena: any)
 		velocity = self:chargerStep(dt, dir, dist)
 	elseif self.def.behaviour == "circler" then
 		velocity = self:circlerStep(dt, dir, dist)
+	elseif self.def.behaviour == "ranged" then
+		velocity = self:rangedStep(dir, dist)
 	else
 		velocity = dir * self.speed
 	end
@@ -290,7 +331,10 @@ function Enemy:steer(dt: number, targetPos: Vector3, arena: any)
 
 	-- Face travel while moving, and the player while winding up, so a charger telegraphs
 	-- both by stopping and by staring at you.
-	local face = if velocity.Magnitude > 0.01 then Vector3.new(velocity.X, 0, velocity.Z).Unit else dir
+	-- Ranged enemies hold still at their firing distance, so face the player rather than a
+	-- zero velocity — otherwise they'd shoot sideways.
+	local moving = velocity.Magnitude > 0.01
+	local face = if moving and not self:isRanged() then Vector3.new(velocity.X, 0, velocity.Z).Unit else dir
 	self.part.CFrame = CFrame.lookAt(next, next + face)
 end
 
