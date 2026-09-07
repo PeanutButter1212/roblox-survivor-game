@@ -60,10 +60,14 @@ end
 
 -- Enemy properties that don't vary by stage (HP/speed/contact damage are per-stage).
 GameConfig.Enemies = {
-	-- Just outside the visible area: enemies appear off screen and walk into view, rather
-	-- than materialising in front of the player or lurking somewhere unseeable.
+	-- Just outside what the camera shows vertically (~53 studs). A widescreen shows more
+	-- to the sides, so spawns off the player's left and right do pop in on screen.
 	SpawnRadius = 58, -- how far from the player they try to appear
 	ContactRange = 5,
+	-- Contact is a horizontal test within this vertical band, not a 3D distance. Obstacles
+	-- are standable, and a plain 3D check let a player on top of one sit diagonally out of
+	-- reach while their own weapons kept firing down at the swarm.
+	ContactHeight = 10,
 	ContactCooldown = 0.6, -- seconds between hits from the same enemy
 	XPReward = 5,
 	HealthRampEvery = 15, -- every N stage-seconds, enemies gain HealthRampAmount HP
@@ -87,6 +91,11 @@ GameConfig.Enemies = {
 		Orbit = 17, -- distance it tries to hold
 		Tolerance = 4, -- closes in or backs off outside this band
 		StrafeFactor = 0.95, -- speed multiplier while circling
+		-- Without a lunge a circler can never reach contact range, so it would be a
+		-- harmless XP piñata that still occupies a slot in the live-enemy cap.
+		LungeEvery = 3.2, -- seconds of circling between dives
+		LungeTime = 0.9,
+		LungeFactor = 1.4, -- speed multiplier during the dive
 	},
 	Splitter = {
 		Children = 2,

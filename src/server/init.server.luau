@@ -52,6 +52,7 @@ Players.PlayerRemoving:Connect(function(player)
 	stageService:onPlayerLeft(player)
 	dataService:save(player)
 	pets:removePlayer(player)
+	level:removePlayer(player)
 	progression:removePlayer(player)
 end)
 

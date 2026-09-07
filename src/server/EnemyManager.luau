@@ -59,6 +59,9 @@ function EnemyManager:spawnOne(target: Target, maxAlive: number, elapsed: number
 	pos = self.arena:clampToBounds(pos)
 
 	local def = Enemies.roll(self.config.number)
+	-- Nudge the spawn out of any obstacle it landed in, so the first steer doesn't snap
+	-- the enemy several studs sideways in front of the player.
+	pos = self.arena:resolveObstacles(pos, math.max(def.hitbox.X, def.hitbox.Z) / 2)
 	local rampedHealth = self.config.enemyHealth
 		+ math.floor(elapsed / GameConfig.Enemies.HealthRampEvery) * GameConfig.Enemies.HealthRampAmount
 
@@ -95,7 +98,7 @@ function EnemyManager:update(dt: number, target: Target, maxAlive: number, spawn
 			continue
 		end
 		enemy:steer(dt, target.root.Position, self.arena)
-		if enemy:distanceTo(target.root.Position) <= enemy:getContactRange(GameConfig.Enemies.ContactRange) then
+		if enemy:canReach(target.root.Position, GameConfig.Enemies.ContactRange, GameConfig.Enemies.ContactHeight) then
 			if enemy:tryHit(now, GameConfig.Enemies.ContactCooldown) and target.humanoid.Health > 0 then
 				target.humanoid:TakeDamage(enemy:getContactDamage())
 			end

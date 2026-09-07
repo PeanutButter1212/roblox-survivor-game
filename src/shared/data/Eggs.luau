@@ -176,6 +176,22 @@ Eggs.List = {
 	},
 } :: { EggDef }
 
+-- Drop any pool entry naming a pet that no longer exists. Doing it once here keeps
+-- Eggs.odds and Eggs.roll reading the same list: a stale id left in place would be skipped
+-- by the published odds but still divide into their total, so the disclosed percentages
+-- would sum below 100 while the roll could still land on the missing pet.
+for _, egg in Eggs.List do
+	local valid: { PoolEntry } = {}
+	for _, entry in egg.pool do
+		if Pets.fromId(entry.petId) then
+			table.insert(valid, entry)
+		else
+			warn(string.format("[Eggs] %s pool drops unknown pet id %q", egg.id, entry.petId))
+		end
+	end
+	egg.pool = valid
+end
+
 local byId: { [string]: EggDef } = {}
 local byProduct: { [number]: EggDef } = {}
 for _, egg in Eggs.List do

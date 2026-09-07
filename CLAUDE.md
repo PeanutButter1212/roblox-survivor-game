@@ -98,10 +98,15 @@ Instance mapping lives in `default.project.json`.
   same weights `Eggs.roll` uses, and the shop UI renders that. Roblox requires the odds of
   paid random items to be disclosed, so a second hand-maintained copy that could drift is
   not acceptable. Never hardcode a percentage.
-- **`ProcessReceipt` grants, then saves, then reports.** It may only return
-  `PurchaseGranted` once the pet is persisted; anything else returns `NotProcessedYet` so
-  Roblox re-delivers the receipt. Returning granted early means a player pays and keeps
-  nothing.
+- **`ProcessReceipt` must be idempotent, and must roll back.** Roblox re-delivers a receipt
+  until it is answered `PurchaseGranted`, so the receipt id is recorded on the profile with
+  the pet it bought and a redelivery of a known id is answered immediately. It may only
+  return `PurchaseGranted` once the pet is persisted — and if the save fails, the in-memory
+  grant has to be undone, or the next autosave writes it anyway and the retry grants a
+  second pet for one payment.
+- **Contact damage is horizontal within a height band, never a 3D distance.** Obstacles are
+  standable; a diagonal check let a player stood on one sit out of reach while their own
+  weapons kept firing. See `Enemy:canReach` and `GameConfig.Enemies.ContactHeight`.
 - **The lobby is one fixed room.** It's shared, so it can't take a per-player theme the way
   an arena does. Its palette and dimensions are `GameConfig.Lobby` / `GameConfig.World`.
 - **One Heartbeat loop**, in `init.server.luau`. Do not add `RunService` loops elsewhere;
