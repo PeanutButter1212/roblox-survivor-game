@@ -120,6 +120,15 @@ Instance mapping lives in `default.project.json`.
 - Roblox APIs are not available to any local tool. **Nothing here can execute the game** —
   runtime behaviour is only ever confirmed by the user in Studio.
 
+## Testing switches
+
+`GameConfig.Testing` holds flags that hand out progression the game is meant to make you
+earn — `UnlockAllStages` (picker offers every stage up to `Progression.StageCeiling`) and
+`GrantCoins` (tops every player up on join). They live in one block on purpose: a debug
+flag scattered into some other section is how one ships by accident. **Both are currently
+on.** If you add another, put it here, and never let one bypass a server-side clamp — they
+change what's *allowed*, never who decides.
+
 ## Verification
 
 ```sh

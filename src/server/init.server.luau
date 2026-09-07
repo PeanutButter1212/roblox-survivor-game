@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Remotes = require(Shared:WaitForChild("Remotes")) -- creates the RemoteEvents
 
 local ProgressionService = require(script:WaitForChild("ProgressionService"))
@@ -39,6 +40,14 @@ local function onPlayerAdded(player: Player)
 	progression:setupPlayer(player)
 	dataService:load(player)
 	dailyReward:grantIfDue(player)
+
+	-- Testing top-up, after the load so it tops up the saved balance rather than the
+	-- default one. See GameConfig.Testing — this is meant to be switched off.
+	local profile = progression:getProfile(player)
+	if profile and GameConfig.Testing.GrantCoins > 0 then
+		profile:topUpCoins(GameConfig.Testing.GrantCoins)
+	end
+
 	-- After the load, so their saved pets are the ones that get spawned.
 	pets:setupPlayer(player)
 end

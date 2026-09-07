@@ -95,10 +95,9 @@ farming a familiar stage is viable but slower than pushing into new ones.
 
 Clearing doesn't auto-advance you. The **SELECT STAGE** board opens a picker; your choice
 shows on the portal door (**▶ STAGE N**) before you touch it. Normally the picker offers
-stage 1 through your highest clear + 1, so you can farm or push but never skip. Setting
-`GameConfig.Progression.UnlockAllStages` opens the whole ladder up to `StageCeiling`
-instead — useful for testing a late map without grinding nine clears to reach it. Either
-way the server clamps what you ask for.
+stage 1 through your highest clear + 1, so you can farm or push but never skip — see
+**Testing switches** below for how to open the whole ladder. Either way the server clamps
+what you ask for.
 
 **Skill tree:** a board in the spawn area opens a visual tree with three permanent
 *character* buff branches — Max Health, Move Speed, Damage (these buff your character, not
@@ -156,6 +155,20 @@ so never hand-write a percentage; change the weights and the published table fol
 **cashing out Robux** through DevEx has its own requirements (age, ID verification, a
 minimum balance) that are entirely on Roblox's side.
 
+## Testing switches
+
+`GameConfig.Testing` holds the switches that hand out progression the game is meant to make
+you earn. They live together so there's one place to check before anyone else plays:
+
+| Switch | Effect |
+| --- | --- |
+| `UnlockAllStages` | The picker offers every stage up to `Progression.StageCeiling` instead of gating at your best clear + 1. The server still clamps what a client asks for — this only moves the ceiling. |
+| `GrantCoins` | Tops every player up to this many coins on join (never lowers a balance). `0` disables it. |
+
+**Both are currently on.** While `GrantCoins` is set, the coin economy — drops, clear
+rewards, the daily bonus, egg prices, skill costs — tells you nothing about how the game
+actually paces, so turn it off before judging balance.
+
 ## Where to tune things
 
 - `src/shared/GameConfig.luau` — camera framing and play radius (`Camera` /
@@ -163,7 +176,7 @@ minimum balance) that are entirely on Roblox's side.
   tuning (`Enemies.Charger` / `.Circler` / `.Splitter`), the cosmetic-part budget
   (`Enemies.DetailBudget`), world and lobby layout (`World` / `Lobby`), round length,
   difficulty ramp, XP curve, coin rewards and kill drops (`Coins`), daily bonus (`Daily`),
-  and `Progression.UnlockAllStages`.
+  and the **testing switches** below.
 - `src/shared/data/Enemies.luau` — the bestiary: stats, behaviour, spawn odds, unlock
   stage, and each brainrot's body. Add a brainrot = add a row.
 - `src/shared/data/Arenas.luau` — map themes: surfaces, accent, props, solid obstacles, and

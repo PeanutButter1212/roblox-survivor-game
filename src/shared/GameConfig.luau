@@ -109,18 +109,31 @@ GameConfig.Progression = {
 	BaseXPToLevel = 20,
 	XPGrowth = 1.35, -- each level needs this much more XP than the last
 	UpgradeOptions = 3, -- how many choices the slot machine offers per level
-	-- Normally the picker offers stage 1 .. highest cleared + 1. Turning this on opens
-	-- every stage up to StageCeiling instead, which is what you want while testing a
-	-- late-stage map without grinding nine clears to see it. Stages are endless, so an
-	-- "all stages" list still needs a bound.
+	StageCeiling = 30, -- stages are endless, so an "all stages" list still needs a bound
+}
+
+-- ============================================================================
+-- TESTING SWITCHES — turn these off before anyone else plays.
+--
+-- Each one hands out progression the game is meant to make you earn. They live together
+-- so there is one place to check, rather than a debug flag hiding in some other section.
+-- ============================================================================
+GameConfig.Testing = {
+	-- Opens every stage up to Progression.StageCeiling in the picker, instead of gating at
+	-- your best clear + 1. Lets you jump straight to a late map without grinding to it.
+	-- The server still clamps what a client asks for; this only changes the ceiling.
 	UnlockAllStages = true,
-	StageCeiling = 30,
+
+	-- If above 0, tops every player up to this many coins when they join. Never lowers a
+	-- balance. With this on, the coin economy — drops, clear rewards, the daily bonus, egg
+	-- prices, skill costs — tells you nothing about how the game actually paces.
+	GrantCoins = 250000,
 }
 
 -- The highest stage a player may currently select, given how far they've cleared. Server
 -- and client both go through this so the picker can't show a stage the server refuses.
 function GameConfig.highestSelectableStage(maxStageCleared: number): number
-	if GameConfig.Progression.UnlockAllStages then
+	if GameConfig.Testing.UnlockAllStages then
 		return GameConfig.Progression.StageCeiling
 	end
 	return maxStageCleared + 1
