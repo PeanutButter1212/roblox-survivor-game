@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scripts/check.sh:*)",
+      "Bash(./scripts/check.sh:*)",
+      "Bash(scripts/setup.sh:*)",
+      "Bash(stylua:*)",
+      "Bash(selene:*)",
+      "Bash(rojo build:*)",
+      "Bash(rojo sourcemap:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(luau:*)",
+      "Read(//Users/marcusng/claudeprojects/roblox/**)"
+    ]
+  }
+}

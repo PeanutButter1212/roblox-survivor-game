@@ -4,17 +4,32 @@ A surviv.io-style survivor game wired up with [Rojo](https://rojo.space) so code
 your Mac syncs live into Roblox Studio.
 
 **How it plays:** You spawn in a **lobby** with a normal camera. Walk into the
-**portal** to drop into a **fixed walled arena** — the camera switches to top-down and a
-**3-minute survival timer** starts. Enemies spawn and chase you (and the swarm grows as
-the timer counts down) while your weapon auto-fires at the nearest one. Killing enemies
-drops XP; on level-up **the run pauses** (timer holds, enemies freeze) and you get
-**three vertical slot-machine reels** — each spins to an upgrade of some **rarity** (Rare →
-Super Rare → Epic → Legendary; rarer = stronger but less likely) — and you click one to
-keep it. The run resumes once you've picked. Survive to 0:00 to win. Die
-and you return to the lobby; walk back through the portal to retry. Health, XP, and the
-timer are on the HUD.
+**portal** to drop into a **walled arena themed to that stage** — the camera switches to
+top-down and a **survival timer** starts. **Brainrot characters** spawn and chase you (and
+the swarm grows as the timer counts down) while your weapon auto-fires at the nearest one.
+Killing them drops XP and sometimes coins; on level-up **the run pauses** (timer holds,
+enemies freeze, **and you're pinned in place**) and you get **three vertical slot-machine
+reels** — each spins to an upgrade of some **rarity** (Rare → Super Rare → Epic →
+Legendary; rarer = stronger but less likely), shown with its own icon — and you click one
+to keep it. The run resumes once you've picked. Survive to 0:00 to win. Die and you return
+to the lobby; walk back through the portal to retry. Health, XP, coins and the timer are
+on the HUD.
 
-**Coins & farming:** clearing a stage pays **coins** (shown on the HUD). Your **first**
+**The enemies:** fourteen brainrots, each with its own body built from primitives and its
+own stat profile — Tung Tung Tung Sahur and Chimpanzini Bananini from stage 1, up through
+Tralalero Tralala, Lirili Larila, Frigo Camelo, Bombardiro Crocodilo, Glorbo Fruttodrillo,
+Cappuccino Assassino and Bombombini Gusini as you climb. Fast glass cannons, slow walls,
+and elites with floating nametags. Early fodder thins out as the heavies come online, so
+stage 12 isn't still mostly Sahurs. One row in `data/Enemies.luau` per brainrot.
+
+**The maps:** every stage is played on one of six themes — Sahur Woods, Tralalero Shore,
+Frigo Freezer, Bombardiro Airfield, Glorbo Orchard, Cappuccino Cafe — each with its own
+floor and wall surfaces, accent trim and scattered props (stumps, palms, ice shards,
+barrels, melons, coffee tables). Stages past the sixth cycle back through them. Props are
+decoration and don't block movement. One row in `data/Arenas.luau` per theme.
+
+**Coins & farming:** brainrots sometimes **drop coins** when they die — walk near one and
+it flies to you. Clearing a stage pays **coins** too (shown on the HUD). Your **first**
 clear of a given stage pays full; **replaying** an already-beaten stage pays a reduced
 rate (`GameConfig.Coins.ReplayFactor`), so you can farm a familiar stage over and over for
 a steady trickle. Clearing no longer auto-advances you — instead a **SELECT STAGE** board
@@ -54,10 +69,13 @@ DataStores. Roblox hosts all of this — no external backend.
   board** to spend coins on permanent character buffs.
 
 ### Where to tune things
-- `src/shared/GameConfig.luau` — world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards** (`GameConfig.Coins`).
+- `src/shared/GameConfig.luau` — world/arena layout, round length, difficulty ramp, enemy & XP numbers, **coin rewards and kill drops** (`GameConfig.Coins`).
+- `src/shared/data/Enemies.luau` — the brainrot bestiary: stats, spawn odds, unlock stage, and each one's body (add a brainrot = add a row).
+- `src/shared/data/Arenas.luau` — map themes: surfaces, trim, props (add a map = add a row).
+- `src/shared/data/Stages.luau` — per-stage size, duration, enemy stats and which theme it uses.
 - `src/shared/data/Rarities.luau` — rarity odds, power multipliers, colors.
-- `src/shared/data/Weapons.luau` — weapon stats (add a gun = add a row).
-- `src/shared/data/Upgrades.luau` — upgrade archetypes (add an upgrade = add a row).
+- `src/shared/data/Weapons.luau` — weapon stats and reel icons (add a gun = add a row).
+- `src/shared/data/Upgrades.luau` — upgrade archetypes, icons and tints (add an upgrade = add a row).
 
 ## Project layout
 
@@ -65,9 +83,9 @@ Code is organised into small, documented OOP classes (one responsibility each).
 
 | Folder        | Syncs into Studio at          | What's there                                            |
 | ------------- | ----------------------------- | ------------------------------------------------------- |
-| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CombatService, ProgressionService, PlayerProfile, LevelManager, DataService, SkillTreeService, DailyRewardService |
-| `src/client`  | StarterPlayerScripts > Client | Controllers: CameraController, HudController, UpgradeSpinController, SkillTreeController, DailyBonusController, StageSelectController |
-| `src/shared`  | ReplicatedStorage > Shared    | `GameConfig`, `Remotes`, `util/` (Class, RandomUtil), `data/` (Rarities, Weapons, Upgrades, Skills) |
+| `src/server`  | ServerScriptService > Server  | StageService + StageInstance (per-player runs), Arena, Enemy(+Manager), CoinManager, CombatService, ProgressionService, PlayerProfile, LevelManager, DataService, SkillTreeService, DailyRewardService |
+| `src/client`  | StarterPlayerScripts > Client | Controllers: CameraController, HudController, UpgradeSpinController, SkillTreeController, DailyBonusController, StageSelectController; plus `Icons` (UI icons drawn from Frames) |
+| `src/shared`  | ReplicatedStorage > Shared    | `GameConfig`, `Remotes`, `util/` (Class, RandomUtil), `data/` (Rarities, Weapons, Upgrades, Skills, Stages, Enemies, Arenas) |
 
 Mapping is defined in `default.project.json`.
 
@@ -91,7 +109,20 @@ Mapping is defined in `default.project.json`.
    ```
 2. In Studio, open a new **Baseplate** place, click the **Rojo** plugin button, and hit
    **Connect**. Your `src/` files now appear in the Explorer and stay in sync as I edit them.
-3. Press **Play** (F5) in Studio to test. Walk into a coin to collect it.
+3. Press **Play** (F5) in Studio to test. Walk near a dropped coin to collect it.
+
+### Before you sync
+
+Run the checks — formatting, lint, strict typecheck against the Roblox API, and a Rojo
+build:
+
+```sh
+scripts/check.sh          # all four gates
+scripts/check.sh --fix    # auto-format first
+```
+
+Nothing here can execute the game: Roblox APIs aren't available to any local tool, so
+runtime behaviour is only ever confirmed by playing it in Studio.
 
 ## Notes
 

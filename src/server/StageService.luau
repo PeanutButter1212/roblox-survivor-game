@@ -54,9 +54,12 @@ function StageService:enterStage(player: Player)
 		return
 	end
 
+	-- Resolve the stage config BEFORE claiming a slot: anything that throws in here would
+	-- otherwise unwind with usedSlots[i] set and slotOf[player] unassigned, leaking that
+	-- world origin for the life of the server.
+	local config = Stages.get(profile:getStage())
 	local slot = self:allocSlot()
 	local origin = self:originForSlot(slot)
-	local config = Stages.get(profile:getStage())
 
 	local function onKill(killer: Player, xp: number)
 		self.progression:addXP(killer, xp)

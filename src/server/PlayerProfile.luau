@@ -16,6 +16,8 @@ local PlayerProfile = Class.new()
 export type OwnedWeapon = { id: string, power: number }
 
 local BASE_HEALTH = 100 -- Roblox's default Humanoid MaxHealth
+local BASE_JUMP_POWER = 50 -- Roblox's defaults, tracked on the profile so a freeze can restore
+local BASE_JUMP_HEIGHT = 7.2 -- them rather than guessing (see applyMovement)
 
 -- XP needed to go from `level` to the next one. Grows geometrically.
 local function xpForLevel(level: number): number
@@ -29,15 +31,23 @@ function PlayerProfile.new(player: Player)
 	self.level = 1
 	self.xp = 0
 	self.xpToNext = xpForLevel(1)
-	self.stats = { damageMult = 1, fireRateMult = 1, walkSpeed = 16, maxHealthBonus = 0 }
+	self.stats = {
+		damageMult = 1,
+		fireRateMult = 1,
+		walkSpeed = 16,
+		maxHealthBonus = 0,
+		jumpPower = BASE_JUMP_POWER,
+		jumpHeight = BASE_JUMP_HEIGHT,
+	}
 	self.weapons = { { id = Weapons.Starting, power = 1 } } :: { OwnedWeapon }
 	self.fireTimers = {} :: { [string]: number }
 	self.inLevel = false
 	self.invulnerable = false
+	self.frozen = false -- true while an upgrade pick is on screen; movement is pinned to 0
 	self.stage = 1 -- the stage the portal will launch (player-selected; persisted)
 	self.coins = 0 -- soft currency earned by clearing stages (persisted)
 	self.maxStageCleared = 0 -- highest stage number ever cleared; gates stage selection
-	self.skills = { health = 0, speed = 0, damage = 0 } -- lobby skill-tree levels (persisted)
+	self.skills = { health = 0, speed = 0, damage = 0 } :: { [string]: number } -- lobby skill-tree levels (persisted)
 	self.lastClaimDay = 0 -- UTC day index of the last daily-bonus claim (persisted)
 	self.dailyStreak = 0 -- consecutive-day login streak (persisted)
 	-- Level-up upgrade flow state (managed by ProgressionService): how many level-ups
@@ -117,12 +127,31 @@ function PlayerProfile:addFireRateMult(amount: number)
 	self.stats.fireRateMult += amount
 end
 
--- Increases walk speed and applies it to the live Humanoid.
+-- Increases walk speed and applies it to the live Humanoid. applyMovement is a no-op on
+-- the walk speed while frozen, so a Move Speed upgrade picked mid-freeze banks the stat
+-- and setFrozen(false) writes it back rather than unpinning the player on the click.
 function PlayerProfile:addWalkSpeed(amount: number)
 	self.stats.walkSpeed += amount
 	local hum = self:getHumanoid()
 	if hum then
+		self:applyMovement(hum)
+	end
+end
+
+-- Writes all four movement properties from the profile's tracked stats, or pins them if
+-- frozen. Everything that changes movement funnels through here so freeze, respawn and
+-- stat upgrades can never disagree about what the Humanoid should be set to.
+function PlayerProfile:applyMovement(hum: Humanoid)
+	if self.frozen then
+		hum.WalkSpeed = 0
+		hum.JumpPower = 0
+		hum.JumpHeight = 0
+		hum.AutoRotate = false
+	else
 		hum.WalkSpeed = self.stats.walkSpeed
+		hum.JumpPower = self.stats.jumpPower
+		hum.JumpHeight = self.stats.jumpHeight
+		hum.AutoRotate = true
 	end
 end
 
@@ -142,9 +171,9 @@ end
 function PlayerProfile:applyToCharacter()
 	local hum = self:getHumanoid()
 	if hum then
-		hum.WalkSpeed = self.stats.walkSpeed
 		hum.MaxHealth = BASE_HEALTH + self.stats.maxHealthBonus
 		hum.Health = hum.MaxHealth
+		self:applyMovement(hum)
 	end
 end
 
@@ -164,8 +193,13 @@ end
 -- player can replay anything they've beaten (to farm coins) and step one stage past it
 -- into new content, but never skip ahead. Replicates the choice for the HUD.
 function PlayerProfile:setStage(stageNumber: number)
+	-- Reachable from a RemoteEvent and from a loaded save, so re-check here rather than
+	-- trusting the caller: math.clamp passes fractions and NaN straight through.
+	if stageNumber ~= stageNumber then
+		return
+	end
 	local maxSelectable = self.maxStageCleared + 1
-	self.stage = math.clamp(stageNumber, 1, maxSelectable)
+	self.stage = math.clamp(math.floor(stageNumber), 1, maxSelectable)
 	self.player:SetAttribute("Stage", self.stage)
 end
 
@@ -259,6 +293,31 @@ function PlayerProfile:setInvulnerable(value: boolean)
 	elseif not value and existing then
 		existing:Destroy()
 	end
+end
+
+-- Pins or releases the character's movement. Used while an upgrade pick is on screen:
+-- the run is already frozen, so letting the player keep walking meant drifting through a
+-- motionless swarm. Jumping goes too, otherwise they can still hop out of position.
+--
+-- The authority is `stats`, never the Humanoid's current values — reading the live values
+-- back would store 0 if two freezes ever overlapped.
+function PlayerProfile:setFrozen(value: boolean)
+	self.frozen = value
+	local hum = self:getHumanoid()
+	if hum then
+		self:applyMovement(hum)
+	end
+end
+
+-- Abandons any in-flight level-up pick and releases everything it locked. A run ending
+-- MUST call this: without it a player who resets mid-pick returns to the lobby still
+-- frozen (applyToCharacter re-pins them on respawn) and still flagged as choosing, which
+-- would then freeze their *next* run before it started.
+function PlayerProfile:cancelPick()
+	self.currentOptions = nil
+	self.levelUpQueue = 0
+	self:setFrozen(false)
+	self:setInvulnerable(false)
 end
 
 -- Serialises the progression worth saving (level, XP, stats, owned weapons).

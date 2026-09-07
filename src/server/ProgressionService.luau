@@ -54,9 +54,19 @@ end
 
 -- Builds one cosmetic reel item (random rarity colour + random upgrade label).
 local function randomReelItem(): any
-	local rarity = RandomUtil.pick(Rarities.List)
-	local archetype = RandomUtil.pick(Upgrades.all())
-	return { label = archetype.label, desc = "", rarity = rarity.name, color = rarity.color }
+	-- `pick` is nil-safe on an empty list; both pools are non-empty, so fall back to the
+	-- first entry rather than making every field read below optional.
+	local pool = Upgrades.all()
+	local rarity = RandomUtil.pick(Rarities.List) or Rarities.List[1]
+	local archetype = RandomUtil.pick(pool) or pool[1]
+	return {
+		label = archetype.label,
+		desc = "",
+		icon = archetype.icon,
+		tint = archetype.tint,
+		rarity = rarity.name,
+		color = rarity.color,
+	}
 end
 
 -- Serialises one option ({archetype, rarity}) into a column the client can spin:
@@ -69,6 +79,8 @@ local function buildColumn(option: any): any
 	table.insert(reel, {
 		label = option.archetype.label,
 		desc = option.archetype.describe(option.rarity.power),
+		icon = option.archetype.icon,
+		tint = option.archetype.tint,
 		rarity = option.rarity.name,
 		color = option.rarity.color,
 	})
@@ -87,7 +99,8 @@ function ProgressionService:rollOptions(profile: any): { any }
 end
 
 -- Offers the next queued level-up, if any and none is already showing. Shields the
--- player (so they can't die mid-pick) and sends the options to the client. The rest of
+-- player, pins their movement (the run is frozen around them, so walking would mean
+-- drifting through a stopped swarm), and sends the options to the client. The rest of
 -- the game keeps running for everyone else.
 function ProgressionService:tryOffer(profile: any)
 	if profile.currentOptions ~= nil or profile.levelUpQueue <= 0 then
@@ -101,6 +114,7 @@ function ProgressionService:tryOffer(profile: any)
 	end
 	profile.currentOptions = options
 	profile:setInvulnerable(true)
+	profile:setFrozen(true)
 
 	local columns = {}
 	for _, option in options do
@@ -109,8 +123,9 @@ function ProgressionService:tryOffer(profile: any)
 	Remotes.get("OfferUpgrades"):FireClient(profile.player, { columns = columns })
 end
 
--- Applies the option the player picked, then offers the next queued pick. The shield
--- stays on across consecutive level-ups and lifts only once nothing is left to pick.
+-- Applies the option the player picked, then offers the next queued pick. The shield and
+-- the movement freeze both stay on across consecutive level-ups and lift only once
+-- nothing is left to pick.
 function ProgressionService:chooseUpgrade(player: Player, index: number)
 	local profile = self.profiles[player]
 	if not profile or not profile.currentOptions then
@@ -127,6 +142,7 @@ function ProgressionService:chooseUpgrade(player: Player, index: number)
 	self:tryOffer(profile)
 	if profile.currentOptions == nil then
 		profile:setInvulnerable(false)
+		profile:setFrozen(false)
 	end
 end
 

@@ -27,11 +27,17 @@ function LevelManager.new(progression: any, stageService: any)
 	self:buildPortal()
 	self:buildStageSelector()
 
-	-- The stage-select UI sends the player's chosen stage here; the profile clamps it.
+	-- The stage-select UI sends the player's chosen stage here; the profile clamps the
+	-- range. Type alone isn't enough: a fraction or a NaN survives math.clamp and then
+	-- indexes straight past the Stages list, so require a whole number >= 1 here.
 	Remotes.get("SelectStage").OnServerEvent:Connect(function(player, stageNumber)
-		if typeof(stageNumber) == "number" then
-			self:selectStage(player, stageNumber)
+		if typeof(stageNumber) ~= "number" then
+			return
 		end
+		if stageNumber ~= stageNumber or stageNumber % 1 ~= 0 or stageNumber < 1 then
+			return
+		end
+		self:selectStage(player, stageNumber)
 	end)
 
 	-- Safety net: make sure players physically start in the lobby on (re)spawn, even

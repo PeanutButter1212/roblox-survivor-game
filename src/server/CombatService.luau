@@ -39,7 +39,12 @@ local function tracer(from: Vector3, to: Vector3)
 end
 
 -- Fires a single weapon from `origin` at up to its target count of enemies.
-function CombatService:fireWeapon(profile: any, enemyManager: any, origin: Vector3, owned: { id: string, power: number })
+function CombatService:fireWeapon(
+	profile: any,
+	enemyManager: any,
+	origin: Vector3,
+	owned: { id: string, power: number }
+)
 	local def = Weapons.fromId(owned.id)
 	if not def then
 		return

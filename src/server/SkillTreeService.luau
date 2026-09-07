@@ -5,7 +5,6 @@
 -- a level is requested over a RemoteEvent and fully validated here (enough coins, not
 -- past the cap) before the stat buff is applied and the level is recorded on the profile.
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
