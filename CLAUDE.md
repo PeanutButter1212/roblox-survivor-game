@@ -57,7 +57,7 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 `GameConfig` (world layout, ramp, coin economy, daily rewards) · `Remotes` (server creates
 the RemoteEvents, client waits for them) · `util/` (`Class`, `RandomUtil`) ·
 `data/` (`Stages`, `Skills`, `Upgrades`, `Weapons`, `Rarities`, `Enemies`, `Arenas`,
-`Pets`, `Eggs`).
+`Pets`, `Eggs`, `Evolutions`).
 
 Instance mapping lives in `default.project.json`.
 
@@ -94,6 +94,11 @@ Instance mapping lives in `default.project.json`.
   enemies and props are, so `EggStands` and the shop show the real thing rather than an
   icon. Two stacked spheres make an egg on purpose — a single non-uniform `Ball` is at the
   engine's mercy.
+- **Evolved weapons are only reachable through `data/Evolutions`.** They're marked
+  `evolved = true` in `data/Weapons`, which is what keeps them out of the ordinary
+  weapon-unlock pool. An evolution replaces its base gun rather than stacking, and
+  `ProgressionService:rollOptions` reserves one reel slot for a ready evolution so it can't
+  lose the shuffle.
 - **Gacha odds are derived, never written.** `Eggs.odds` computes percentages from the
   same weights `Eggs.roll` uses, and the shop UI renders that. Roblox requires the odds of
   paid random items to be disclosed, so a second hand-maintained copy that could drift is

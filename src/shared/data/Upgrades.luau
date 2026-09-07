@@ -8,12 +8,13 @@
 -- PlayerProfile class exposes, so this module stays free of server dependencies.
 
 local Weapons = require(script.Parent:WaitForChild("Weapons"))
+local Evolutions = require(script.Parent:WaitForChild("Evolutions"))
 
 -- A `profile` is anything exposing the mutation methods used below
 -- (PlayerProfile on the server). Kept loose on purpose.
 export type Archetype = {
 	id: string,
-	kind: string, -- "stat" or "weapon"
+	kind: string, -- "stat", "weapon" or "evolution"
 	label: string, -- short name shown on the slot reel
 	icon: string, -- glyph shown on the reel card's badge
 	tint: Color3, -- badge colour behind that glyph
@@ -115,12 +116,43 @@ local function makeWeaponArchetype(weaponId: string): Archetype
 	}
 end
 
--- Weapon archetypes for every non-starting weapon.
+-- Weapon archetypes for every non-starting, non-evolved weapon. Evolved forms are reached
+-- only through data/Evolutions, never rolled as an ordinary unlock.
 local weaponArchetypes: { Archetype } = {}
-for id in Weapons.Defs do
-	if id ~= Weapons.Starting then
+for id, def in Weapons.Defs do
+	if id ~= Weapons.Starting and not def.evolved then
 		table.insert(weaponArchetypes, makeWeaponArchetype(id))
 	end
+end
+
+-- Builds the archetype that offers one evolution. Availability is the whole gate: it only
+-- shows once the player owns the base gun and has stacked the required stat.
+local function makeEvolutionArchetype(evolution: any): Archetype
+	local def = Weapons.fromId(evolution.weaponId)
+	assert(def, "Unknown evolved weapon id: " .. evolution.weaponId)
+	return {
+		id = "evo_" .. evolution.id,
+		kind = "evolution",
+		label = def.name,
+		icon = def.icon,
+		tint = def.tint,
+		isAvailable = function(profile)
+			return profile:hasWeapon(evolution.baseWeapon)
+				and not profile:hasWeapon(evolution.weaponId)
+				and profile:getUpgradeCount(evolution.statId) >= evolution.statPicks
+		end,
+		apply = function(profile, rarityPower)
+			profile:evolveWeapon(evolution.baseWeapon, evolution.weaponId, rarityPower)
+		end,
+		describe = function(_rarityPower)
+			return evolution.describe
+		end,
+	}
+end
+
+local evolutionArchetypes: { Archetype } = {}
+for _, evolution in Evolutions.List do
+	table.insert(evolutionArchetypes, makeEvolutionArchetype(evolution))
 end
 
 -- Returns the full archetype pool (stats + weapon unlocks).
@@ -132,7 +164,22 @@ function Upgrades.all(): { Archetype }
 	for _, a in weaponArchetypes do
 		table.insert(combined, a)
 	end
+	for _, a in evolutionArchetypes do
+		table.insert(combined, a)
+	end
 	return combined
+end
+
+-- Only the evolution archetypes `profile` currently qualifies for. ProgressionService uses
+-- this to make sure a ready evolution is actually offered rather than losing the shuffle.
+function Upgrades.availableEvolutions(profile: any): { Archetype }
+	local result = {}
+	for _, a in evolutionArchetypes do
+		if a.isAvailable(profile) then
+			table.insert(result, a)
+		end
+	end
+	return result
 end
 
 -- Returns only the archetypes currently available to `profile`.

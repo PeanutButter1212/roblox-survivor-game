@@ -56,7 +56,14 @@ end
 local function randomReelItem(): any
 	-- `pick` is nil-safe on an empty list; both pools are non-empty, so fall back to the
 	-- first entry rather than making every field read below optional.
-	local pool = Upgrades.all()
+	-- Filler excludes evolutions: a spinning card promising one the player hasn't earned
+	-- would read as a near-miss on something that was never on offer.
+	local pool = {}
+	for _, archetype in Upgrades.all() do
+		if archetype.kind ~= "evolution" then
+			table.insert(pool, archetype)
+		end
+	end
 	local rarity = RandomUtil.pick(Rarities.List) or Rarities.List[1]
 	local archetype = RandomUtil.pick(pool) or pool[1]
 	return {
@@ -64,6 +71,7 @@ local function randomReelItem(): any
 		desc = "",
 		icon = archetype.icon,
 		tint = archetype.tint,
+		kind = archetype.kind,
 		rarity = rarity.name,
 		color = rarity.color,
 	}
@@ -81,6 +89,7 @@ local function buildColumn(option: any): any
 		desc = option.archetype.describe(option.rarity.power),
 		icon = option.archetype.icon,
 		tint = option.archetype.tint,
+		kind = option.archetype.kind,
 		rarity = option.rarity.name,
 		color = option.rarity.color,
 	})
@@ -88,12 +97,27 @@ local function buildColumn(option: any): any
 end
 
 -- Rolls a set of distinct upgrade options, each with its own rolled rarity.
+--
+-- A ready evolution always takes one of the slots. It's the payoff for a whole build's
+-- worth of picks, and letting it lose a shuffle to a +15% damage roll — possibly for
+-- several level-ups running — would be miserable. Only one is offered at a time even if
+-- two are ready, so the choice stays a choice.
 function ProgressionService:rollOptions(profile: any): { any }
-	local pool = RandomUtil.shuffled(Upgrades.available(profile))
-	local count = math.min(GameConfig.Progression.UpgradeOptions, #pool)
+	local limit = GameConfig.Progression.UpgradeOptions
 	local options = {}
-	for i = 1, count do
-		table.insert(options, { archetype = pool[i], rarity = Rarities.roll() })
+
+	local evolutions = RandomUtil.shuffled(Upgrades.availableEvolutions(profile))
+	if evolutions[1] then
+		table.insert(options, { archetype = evolutions[1], rarity = Rarities.roll() })
+	end
+
+	for _, archetype in RandomUtil.shuffled(Upgrades.available(profile)) do
+		if #options >= limit then
+			break
+		end
+		if archetype.kind ~= "evolution" then
+			table.insert(options, { archetype = archetype, rarity = Rarities.roll() })
+		end
 	end
 	return options
 end
@@ -137,6 +161,9 @@ function ProgressionService:chooseUpgrade(player: Player, index: number)
 	end
 
 	option.archetype.apply(profile, option.rarity.power)
+	-- Counted after applying, so an evolution's requirement is met by picks the player has
+	-- actually taken. This is what data/Evolutions gates on.
+	profile:countUpgrade(option.archetype.id)
 	profile.currentOptions = nil
 
 	self:tryOffer(profile)
