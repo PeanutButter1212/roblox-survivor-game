@@ -1,7 +1,8 @@
 --!strict
 -- LevelManager.luau
--- Builds the lobby room (floor, walls, spawn dais), the portal players step through, and
--- the stage-select station beside it. Touching the portal teleports the player into their
+-- Builds the lobby: the room (floor, walls, spawn dais), the portal players step through,
+-- the stage-select station beside it, the two oversized brainrot statues flanking the walk
+-- to the portal, and the scattered decoration filling the rest of the floor. Touching the portal teleports the player into their
 -- arena and flips their profile to in-level, which is what starts enemies/combat for them.
 --
 -- The lobby is one fixed room rather than a themed one: it's shared by everyone, so it
@@ -16,6 +17,10 @@ local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local LobbyDecor = require(script.Parent:WaitForChild("LobbyDecor"))
+local LobbyProps = require(Shared:WaitForChild("data"):WaitForChild("LobbyProps"))
+local Enemies = require(Shared:WaitForChild("data"):WaitForChild("Enemies"))
+local Piece = require(Shared:WaitForChild("util"):WaitForChild("Piece"))
+local RandomUtil = require(Shared:WaitForChild("util"):WaitForChild("RandomUtil"))
 
 local LevelManager = Class.new()
 
@@ -30,6 +35,8 @@ function LevelManager.new(progression: any, stageService: any)
 	self:buildLobby()
 	self:buildPortal()
 	self:buildStageSelector()
+	self:buildGuardians()
+	self:buildProps()
 
 	-- The stage-select UI sends the player's chosen stage here; the profile clamps the
 	-- range. Type alone isn't enough: a fraction or a NaN survives math.clamp and then
@@ -109,7 +116,7 @@ function LevelManager:buildLobby()
 	self:buildSpawnDais(center, palette)
 end
 
--- Lays an inset border and a spawn ring into the floor. Flat colour over 90x90 studs
+-- Lays an inset border and a spawn ring into the floor. Flat colour over 140x140 studs
 -- reads as a void; these give the eye something to measure the room against.
 function LevelManager:buildFloorInlay(center: Vector3, half: number, palette: any)
 	local y = center.Y + 0.55
@@ -374,6 +381,142 @@ function LevelManager:buildStageSelector()
 	click.MouseClick:Connect(function(player)
 		Remotes.get("OpenStageSelect"):FireClient(player)
 	end)
+end
+
+-- Everything a prop must not land on, in lobby-local XZ with a clearance radius. Kept as
+-- one list rather than scattered checks so adding a station means adding a line here, not
+-- hunting for why decoration is standing in front of it.
+function LevelManager:keepOutZones(): { { x: number, z: number, radius: number } }
+	local portalZ = GameConfig.World.PortalPosition.Z - GameConfig.World.LobbyCenter.Z
+	return {
+		{ x = 0, z = 0, radius = 22 }, -- the spawn ring
+		{ x = 0, z = portalZ, radius = 20 }, -- portal and its arch
+		{ x = 14, z = portalZ, radius = 13 }, -- stage-select station
+		{ x = -48, z = 0, radius = 15 }, -- skill tree board
+		-- 20, not 13: at 13 these two circles don't meet on the centre line, leaving a
+		-- pocket right on the walk from the spawn ring to the portal where a lamp or
+		-- banner could stand. Widened so they overlap at x = 0.
+		{ x = -16, z = portalZ / 2, radius = 20 }, -- guardian statues
+		{ x = 16, z = portalZ / 2, radius = 20 },
+		{ x = 52, z = -20, radius = 13 }, -- egg pedestals
+		{ x = 52, z = 0, radius = 13 },
+		{ x = 52, z = 20, radius = 13 },
+		{ x = -66, z = -40, radius = 13 }, -- leaderboard panels
+		{ x = -66, z = 0, radius = 13 },
+		{ x = -66, z = 40, radius = 13 },
+	}
+end
+
+-- Scatters decoration across whatever floor the stations aren't using. Props are never
+-- solid: the lobby is a place you walk around freely, and something you can bump into but
+-- can't interact with is just an obstacle.
+function LevelManager:buildProps()
+	local center = GameConfig.World.LobbyCenter
+	local half = GameConfig.World.LobbySize / 2
+	local limit = half - 10 -- keep clear of the walls
+	local zones = self:keepOutZones()
+	local galleryZ = half - 16 -- the brainrot hall runs along the back
+
+	local folder = Instance.new("Folder")
+	folder.Name = "Decor"
+	folder.Parent = self.folder
+
+	local area = GameConfig.World.LobbySize * GameConfig.World.LobbySize
+	local count = math.floor(LobbyProps.Density * area / 10000)
+	local placed = {} :: { { x: number, z: number, radius: number } }
+
+	for _ = 1, count do
+		local prop = RandomUtil.weightedPick(LobbyProps.List)
+		for _ = 1, 14 do
+			local x = (math.random() * 2 - 1) * limit
+			local z = (math.random() * 2 - 1) * limit
+			if z < galleryZ and self:isSpotClear(x, z, prop.radius, zones, placed) then
+				local base = CFrame.new(center + Vector3.new(x, 0.5, z))
+					* CFrame.Angles(0, math.random() * math.pi * 2, 0)
+				for _, piece in prop.pieces do
+					local part = Piece.build(piece, base, 0)
+					part.Parent = folder
+				end
+				table.insert(placed, { x = x, z = z, radius = prop.radius })
+				break
+			end
+		end
+	end
+end
+
+-- Whether a prop of `radius` fits at a lobby-local spot: clear of every station, and clear
+-- of everything already placed. The second half matters as much as the first — two rugs
+-- three studs apart z-fight, and a bench inside a planter reads as broken, not as decor.
+function LevelManager:isSpotClear(
+	x: number,
+	z: number,
+	radius: number,
+	zones: { { x: number, z: number, radius: number } },
+	placed: { { x: number, z: number, radius: number } }
+): boolean
+	for _, zone in zones do
+		local dx, dz = x - zone.x, z - zone.z
+		local minimum = zone.radius + radius
+		if dx * dx + dz * dz < minimum * minimum then
+			return false
+		end
+	end
+	for _, other in placed do
+		local dx, dz = x - other.x, z - other.z
+		local minimum = other.radius + radius + 2 -- a little air between them
+		if dx * dx + dz * dz < minimum * minimum then
+			return false
+		end
+	end
+	return true
+end
+
+-- Two oversized brainrots flanking the walk from the spawn ring to the portal. The gallery
+-- at the back shows the whole roster small; these are here to be walked between, so they
+-- are built from the same data at nearly three times the gallery's scale.
+function LevelManager:buildGuardians()
+	local center = GameConfig.World.LobbyCenter
+	local portalZ = GameConfig.World.PortalPosition.Z
+	local z = center.Z + (portalZ - center.Z) / 2
+	local floorY = center.Y + 0.5
+
+	local guardians = {
+		{ id = "bombardiro", x = -16, yaw = -90 },
+		{ id = "glorbo", x = 16, yaw = 90 },
+	}
+	for _, guardian in guardians do
+		local def = Enemies.fromId(guardian.id)
+		if not def then
+			continue
+		end
+		local base = Vector3.new(center.X + guardian.x, floorY, z)
+
+		LobbyDecor.part({
+			name = guardian.id .. "_Plinth",
+			size = Vector3.new(11, 3, 11),
+			position = base + Vector3.new(0, 1.5, 0),
+			color = GameConfig.Lobby.FrameColor,
+			material = Enum.Material.Concrete,
+			parent = self.folder,
+			collide = true,
+		})
+		LobbyDecor.part({
+			name = "GuardianCap",
+			size = Vector3.new(11.6, 0.4, 11.6),
+			position = base + Vector3.new(0, 3.2, 0),
+			color = Enemies.silhouette(def),
+			material = Enum.Material.Neon,
+			parent = self.folder,
+		})
+
+		-- Turned to face the walkway rather than the exit, so they read as flanking it.
+		local stand = CFrame.new(base + Vector3.new(0, 3.4, 0)) * CFrame.Angles(0, math.rad(guardian.yaw), 0)
+		for _, piece in def.body do
+			local part = Piece.build(piece, stand, 0, 1.4)
+			part.Name = guardian.id
+			part.Parent = self.folder
+		end
+	end
 end
 
 -- Forgets a leaving player. Without this the portal debounce keeps a reference to every

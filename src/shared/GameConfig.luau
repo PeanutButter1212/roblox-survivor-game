@@ -8,15 +8,15 @@ local GameConfig = {}
 -- Bump this with every release and keep it matching the git tag (see CHANGELOG.md). It's
 -- printed on server start, which is how you tell what a running Studio session actually
 -- has in it versus what's in the repo.
-GameConfig.Version = "2.11"
+GameConfig.Version = "2.12"
 
 -- World layout. Each player's arena is built far away at its own slot (see
 -- StageService); these are the shared lobby + the spawn offset within an arena.
 GameConfig.World = {
 	LobbyCenter = Vector3.new(0, 0, 360),
-	PortalPosition = Vector3.new(0, 5, 330), -- on the lobby platform, facing the arena
+	PortalPosition = Vector3.new(0, 5, 310), -- on the lobby platform, facing the arena
 	ArenaSpawnOffset = Vector3.new(0, 8, 0), -- where a player lands relative to their arena's origin
-	LobbySize = 90, -- the lobby floor is this many studs square
+	LobbySize = 140, -- the lobby floor is this many studs square
 	LobbyWallHeight = 24,
 }
 

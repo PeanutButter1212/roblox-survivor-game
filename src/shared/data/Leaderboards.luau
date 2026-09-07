@@ -35,7 +35,7 @@ Leaderboards.List = {
 		title = "HIGHEST STAGE",
 		store = "LB_Stage_v1",
 		color = Color3.fromRGB(255, 214, 90),
-		offsetZ = -24,
+		offsetZ = -40,
 		get = function(profile)
 			return profile:getMaxStageCleared()
 		end,
@@ -61,7 +61,7 @@ Leaderboards.List = {
 		title = "LONGEST STREAK",
 		store = "LB_Streak_v1",
 		color = Color3.fromRGB(160, 240, 150),
-		offsetZ = 24,
+		offsetZ = 40,
 		get = function(profile)
 			return profile:getDailyStreak()
 		end,

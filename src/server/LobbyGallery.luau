@@ -20,8 +20,8 @@ local LobbyDecor = require(script.Parent:WaitForChild("LobbyDecor"))
 
 local LobbyGallery = Class.new()
 
-local DISPLAY_SCALE = 0.5 -- Bombardiro is 7 studs wide at full size; the hall is 90 across
-local MAX_SPACING = 6.2 -- comfortable gap; the row tightens below this as the roster grows
+local DISPLAY_SCALE = 0.5 -- Bombardiro is 7 studs wide at full size; the hall is 140 across
+local MAX_SPACING = 9.5 -- comfortable gap; the row tightens below this as the roster grows
 local END_MARGIN = 10 -- keeps the outermost plinths clear of the side walls
 local PLINTH_HEIGHT = 3
 local BACK_INSET = 9 -- studs in from the back wall

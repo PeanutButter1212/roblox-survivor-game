@@ -114,7 +114,12 @@ end
 -- shared portal. Done off the main flow since the portal part streams in shortly after join.
 function StageSelectController:buildDoorDisplay()
 	task.spawn(function()
-		local portal = Workspace:WaitForChild("LevelPortal", 30)
+		-- WaitForChild only searches direct children, and the portal lives inside the
+		-- Lobby folder, not at the Workspace root. This looked one level too high and so
+		-- timed out silently — the door label has never appeared since the lobby was
+		-- rebuilt as a folder.
+		local lobby = Workspace:WaitForChild("Lobby", 30)
+		local portal = lobby and lobby:WaitForChild("LevelPortal", 30)
 		if not portal then
 			return
 		end
