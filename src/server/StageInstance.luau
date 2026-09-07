@@ -1,7 +1,7 @@
 --!strict
 -- StageInstance.luau
 -- One player's private run of a stage: it builds its own Arena at a far-away origin,
--- owns its own EnemyManager and CoinManager, runs its own survival timer and difficulty
+-- owns its own EnemyManager and PickupManager, runs its own survival timer and difficulty
 -- ramp, and fires the player's weapons via the shared CombatService helper. Surviving the timer clears
 -- the stage (advancing the player); dying or leaving fails it. Per-stage state is
 -- published to the player via attributes the HUD reads.
@@ -13,7 +13,7 @@ local Class = require(Shared:WaitForChild("util"):WaitForChild("Class"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Arena = require(script.Parent:WaitForChild("Arena"))
 local EnemyManager = require(script.Parent:WaitForChild("EnemyManager"))
-local CoinManager = require(script.Parent:WaitForChild("CoinManager"))
+local PickupManager = require(script.Parent:WaitForChild("PickupManager"))
 local ProjectileManager = require(script.Parent:WaitForChild("ProjectileManager"))
 
 local StageInstance = Class.new()
@@ -47,14 +47,23 @@ function StageInstance.new(
 	self.lastBroadcastSecond = -1
 
 	self.arena = Arena.new(origin, config.arenaSize, config.theme)
-	self.coinManager = CoinManager.new(self.arena.folder, profile, self.arena.center.Y)
 	self.projectiles = ProjectileManager.new(self.arena.folder)
 
-	-- The kill callback fans out: XP goes to the caller's handler (ProgressionService),
-	-- while any coins the brainrot was carrying drop where it fell.
-	self.enemyManager = EnemyManager.new(self.arena.folder, self.arena, config, function(killer, xp, position, coins)
-		onKill(killer, xp)
-		self.coinManager:drop(position, coins)
+	-- Both payouts are pickups now: XP is an orb you have to walk to, exactly like a coin,
+	-- so a kill across the arena isn't free progress. What each one pays is wired here.
+	self.pickups = PickupManager.new(self.arena.folder, self.arena.center.Y, {
+		coin = function(value)
+			profile:addCoins(value)
+		end,
+		xp = function(value)
+			onKill(player, value)
+		end,
+	})
+
+	-- A dead brainrot leaves its XP where it fell, plus any coins it was carrying.
+	self.enemyManager = EnemyManager.new(self.arena.folder, self.arena, config, function(xp, position, coins)
+		self.pickups:drop("xp", position, xp)
+		self.pickups:drop("coin", position, coins)
 	end, function(from, direction, damage, color)
 		self.projectiles:fire(from, direction, damage, color)
 	end)
@@ -126,7 +135,7 @@ function StageInstance:update(dt: number)
 	-- everything else while the player is picking an upgrade.
 	self.pets:updateCombat(self.profile, self.enemyManager, dt)
 	self.projectiles:update(dt, target)
-	self.coinManager:update(dt, target)
+	self.pickups:update(dt, target)
 
 	local whole = math.ceil(math.max(0, self.timeLeft))
 	if whole ~= self.lastBroadcastSecond then
@@ -148,7 +157,12 @@ function StageInstance:finish(result: string)
 	self.active = false
 	self.enemyManager:clearAll()
 	self.projectiles:clearAll()
-	self.coinManager:clearAll()
+	-- A clear banks the coins still on the floor; a failure doesn't. XP is never banked
+	-- this way — see PickupManager:collectAll for why.
+	if result == "Cleared" then
+		self.pickups:collectAll("coin")
+	end
+	self.pickups:clearAll()
 	-- Releases the shield, the movement pin AND the pick queue together. A player can
 	-- end a run mid-pick (reset, or the swarm finishing them the frame before), and any
 	-- of those left set would follow them into the lobby.
@@ -179,7 +193,9 @@ end
 function StageInstance:destroy()
 	self.enemyManager:clearAll()
 	self.projectiles:clearAll()
-	self.coinManager:clearAll()
+	-- No payout here: finish() has already settled it, and destroy() also runs on paths
+	-- (a player leaving mid-run) where nothing should be banked.
+	self.pickups:clearAll()
 	self.arena:destroy()
 end
 

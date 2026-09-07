@@ -10,7 +10,8 @@ Players spawn in a shared **lobby**. A **SELECT STAGE** board picks which stage 
 drops the player into their **own private arena** built far away in the same server —
 camera goes top-down, a survival timer starts, **brainrot characters** spawn and chase, and
 the player's weapons auto-fire at the nearest one. Each stage has its own themed map.
-Kills drop XP and sometimes **coins** you hoover up by walking near them; on level-up
+Kills drop a **blue XP orb** and sometimes a **coin**, both of which have to be walked to —
+the orb pulls in from a shorter distance than the coin does; on level-up
 **the run pauses and the player is pinned in place** while three vertical slot-machine
 reels each land on a rarity-rolled upgrade to pick from.
 Surviving to 0:00 clears the stage and pays **coins** (full on first clear, a fraction on
@@ -31,7 +32,7 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 | `EnemyManager` | Live enemies for **one** stage instance: rolls which brainrot spawns, spawn rate/cap, movement, contact damage, nearest-enemy queries, death/XP. |
 | `Enemy` | One enemy: assembles its brainrot's body from `data/Enemies`, health, movement (CFrame-driven), damage feedback, contact cooldown. |
 | `ProjectileManager` | Enemy shots in flight for **one** stage instance: travel, hit test, expiry. Driven from StageInstance, so shots freeze during a level-up pick. |
-| `CoinManager` | Coin pickups for **one** stage instance: drops, bobbing, magnet-to-player, expiry. Bound to one profile so a drop can only pay its owner. |
+| `PickupManager` | Coins and XP orbs for **one** stage instance: drops, bobbing, magnet-to-player, expiry. Kinds are data (`data/Pickups`); what collecting one pays is a handler StageInstance supplies. |
 | `CombatService` | Stateless. Fires one player's auto-weapons at enemies in their own instance. |
 | `PetService` | Every player's pets: what they've hatched, which are equipped, the live models, and both hatch paths (coins and Robux). Owns `ProcessReceipt`. |
 | `Pet` | One live companion: model, orbit around its owner, attack timer. |
@@ -59,7 +60,7 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 `GameConfig` (world layout, ramp, coin economy, daily rewards) · `Remotes` (server creates
 the RemoteEvents, client waits for them) · `util/` (`Class`, `RandomUtil`) ·
 `data/` (`Stages`, `Skills`, `Upgrades`, `Weapons`, `Rarities`, `Enemies`, `Arenas`,
-`Pets`, `Eggs`, `Evolutions`, `Leaderboards`).
+`Pets`, `Eggs`, `Evolutions`, `Pickups`, `Leaderboards`).
 
 Instance mapping lives in `default.project.json`.
 
@@ -122,6 +123,10 @@ Instance mapping lives in `default.project.json`.
   else, and a stat that goes down (a coin *balance*) would rank whoever hoarded rather than
   whoever played. Every read and write is wrapped — a board that can't reach its store
   shows stale rows, never an error into the loop.
+- **XP is a pickup, not an award.** A kill drops an orb the player has to reach; nothing
+  grants XP directly. Its shorter magnet radius than a coin's is the point — it pulls you
+  toward where the brainrot died. Add a pickup kind with a row in `data/Pickups` and a
+  handler in `StageInstance`; `PickupManager` never names a kind.
 - **One Heartbeat loop**, in `init.server.luau`. Do not add `RunService` loops elsewhere;
   have the owning service expose `update(dt)` and call it from there.
 - **Server is authoritative.** Anything a client asks for over a RemoteEvent (upgrade

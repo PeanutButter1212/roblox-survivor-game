@@ -28,7 +28,7 @@ function EnemyManager.new(
 	parentFolder: Instance,
 	arena: any,
 	stageConfig: any,
-	onKilled: (Player, number, Vector3, number) -> (),
+	onKilled: (number, Vector3, number) -> (),
 	onShoot: (Vector3, Vector3, number, Color3) -> ()
 )
 	local self = setmetatable({}, EnemyManager)
@@ -147,9 +147,11 @@ function EnemyManager:getNearest(position: Vector3, range: number, count: number
 	return result
 end
 
--- Damages an enemy; on death, removes it and reports the kill (XP, where it fell, and
--- any coins it was carrying) to the owning stage instance.
-function EnemyManager:damageEnemy(enemy: any, amount: number, byPlayer: Player)
+-- Damages an enemy; on death, removes it and reports the kill (XP, where it fell, and any
+-- coins it was carrying) to the owning stage instance. No killer is passed: payouts drop
+-- as pickups for whoever owns the arena, which is stricter isolation than trusting a
+-- reported killer, and every arena has exactly one owner.
+function EnemyManager:damageEnemy(enemy: any, amount: number)
 	if enemy:isDead() then
 		return
 	end
@@ -163,7 +165,7 @@ function EnemyManager:damageEnemy(enemy: any, amount: number, byPlayer: Player)
 			else nil
 		enemy:destroy()
 		self:removeDead()
-		self.onKilled(byPlayer, xp, position, coins)
+		self.onKilled(xp, position, coins)
 		if splits then
 			self:spawnSplit(splits, position)
 		end

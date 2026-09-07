@@ -331,7 +331,7 @@ function PetService:updateCombat(profile: any, enemyManager: any, dt: number)
 		local target = targets[1]
 		pet.lastTarget = if target then target:getPosition() else nil
 		if ready and target then
-			enemyManager:damageEnemy(target, pet.def.damage * profile.stats.damageMult, profile.player)
+			enemyManager:damageEnemy(target, pet.def.damage * profile.stats.damageMult)
 		end
 	end
 end
