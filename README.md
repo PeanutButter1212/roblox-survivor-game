@@ -33,10 +33,10 @@ the portal to retry. Health, XP, coins and the timer are on the HUD.
 Fourteen brainrots, each with its own body, stat profile and **behaviour**:
 
 - **Chasers** walk straight at you. Tung Tung Tung Sahur, Chimpanzini Bananini and Brr Brr
-  Patapim from stage 1; Boneca Ambalabu, Lirili Larila and Frigo Camelo later.
-- **Chargers** — Tralalero Tralala, Bombardiro Crocodilo, Cappuccino Assassino, Bombombini
-  Gusini — close in, **stop dead to telegraph**, then dash along the line they committed
-  to. Stand still and you're hit; step aside and they miss.
+  Patapim from stage 1; Lirili Larila and Frigo Camelo later.
+- **Chargers** — Tralalero Tralala and Cappuccino Assassino — close in, **stop dead to
+  telegraph**, then dash along the line they committed to. Stand still and you're hit; step
+  aside and they miss.
 - **Circlers** — Bobrito Bandito, Trippi Troppi, Ballerina Cappuccina — hold a ring around
   you and strafe instead of piling in.
 - **Shooters** — Boneca Ambalabu, and the two bombers Bombardiro Crocodilo and Bombombini
@@ -168,6 +168,16 @@ the server rolls with** — Roblox requires the chances of paid random items to 
 so never hand-write a percentage; change the weights and the published table follows. And
 **cashing out Robux** through DevEx has its own requirements (age, ID verification, a
 minimum balance) that are entirely on Roblox's side.
+
+## Versions
+
+Every change ships as a version, tagged in git and published as a
+[GitHub release](https://github.com/PeanutButter1212/roblox-survivor-game/releases).
+`vN.0` is a major — a new pillar you'd name as a feature of the game — and `vN.M` is
+everything else. See [CHANGELOG.md](CHANGELOG.md) for the history.
+
+The running version is printed on server start and lives in `GameConfig.Version`, so you
+can tell what a Studio session actually has in it.
 
 ## Testing switches
 

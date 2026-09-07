@@ -137,6 +137,37 @@ flag scattered into some other section is how one ships by accident. **Both are 
 on.** If you add another, put it here, and never let one bypass a server-side clamp — they
 change what's *allowed*, never who decides.
 
+## Release process — follow this for every change
+
+1. **Branch off `main`.** Never commit straight to it.
+2. Build the change and run `scripts/check.sh` until all four gates pass.
+3. In the same branch, add the CHANGELOG.md entry and bump `GameConfig.Version`.
+4. **Open a PR against `main`.**
+5. **Run the `reviewer` agent on the PR's diff, and act on what it finds, BEFORE merging.**
+   A green gate is not sufficient on its own — it cannot see correctness bugs,
+   server-authority holes, per-player state leaks, money-path errors or runtime hazards.
+   Every review so far has found real ones the gate passed.
+6. Merge and delete the branch, then pull and tag. Existing tags point at the branch's
+   own final commit rather than the merge commit — either is reachable from `main`, but
+   stay consistent with what's there:
+   ```sh
+   git checkout main && git pull          # the new commits must be local before tagging
+   git tag -a vN.M <sha> -m "<summary>" && git push origin vN.M
+   gh release create vN.M --title "vN.M — <name>" --notes "..."
+   ```
+
+**Versioning.** `vN.0` is a major: a new pillar a player would name as a feature — a new
+progression axis, economy, or kind of thing to fight or collect. `vN.M` is everything else.
+`GameConfig.Version` must match the tag its own release ships under — it is bumped in step
+3 and tagged in step 6, so it legitimately runs ahead of the newest tag in between.
+
+**Don't stack PRs on each other.** Land one at a time against `main`. GitHub does retarget
+a PR whose base branch is deleted, so the mechanism isn't the problem — the problem is that
+a stacked PR's diff and merge base move under it while it's open, and this repo has already
+had one stacked merge go wrong: PRs #2 and #4 ended up closed and #3 merged into an
+intermediate branch instead of `main`, stranding three batches of work until they were
+re-landed as #5. The rule is cheap; recovering isn't.
+
 ## Verification
 
 ```sh

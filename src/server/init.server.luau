@@ -87,4 +87,4 @@ RunService.Heartbeat:Connect(function(dt)
 	eggStands:update(dt)
 end)
 
-print("[Server] Lobby ready. Each player gets their own arena and stage progression.")
+print(string.format("[Server] v%s ready. Each player gets their own arena and stage progression.", GameConfig.Version))
