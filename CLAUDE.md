@@ -140,7 +140,9 @@ change what's *allowed*, never who decides.
 ## Release process — follow this for every change
 
 1. **Branch off `main`.** Never commit straight to it.
-2. Build the change and run `scripts/check.sh` until all four gates pass.
+2. Build the change and run `scripts/check.sh` until all four gates pass. The same script
+   runs in CI on every PR (`.github/workflows/verify.yml`) and `main` is protected on it,
+   so a red gate blocks the merge rather than relying on anyone remembering to look.
 3. In the same branch, add the CHANGELOG.md entry and bump `GameConfig.Version`.
 4. **Open a PR against `main`.**
 5. **Run the `reviewer` agent on the PR's diff, and act on what it finds, BEFORE merging.**

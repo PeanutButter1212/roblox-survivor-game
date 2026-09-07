@@ -8,7 +8,7 @@ local GameConfig = {}
 -- Bump this with every release and keep it matching the git tag (see CHANGELOG.md). It's
 -- printed on server start, which is how you tell what a running Studio session actually
 -- has in it versus what's in the repo.
-GameConfig.Version = "2.7"
+GameConfig.Version = "2.8"
 
 -- World layout. Each player's arena is built far away at its own slot (see
 -- StageService); these are the shared lobby + the spawn offset within an arena.
