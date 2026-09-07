@@ -17,6 +17,7 @@ export type WeaponDef = {
 	fireInterval: number, -- seconds between shots
 	range: number, -- studs
 	targets: number, -- how many enemies a single shot can hit
+	evolved: boolean?, -- true for weapons only reachable through data/Evolutions
 }
 
 local Weapons = {}
@@ -62,6 +63,52 @@ Weapons.Defs = {
 		fireInterval = 0.9,
 		range = 50,
 		targets = 1,
+	},
+	-- Evolved forms. These are never offered as a plain unlock — data/Evolutions gates each
+	-- one behind owning its base gun and having taken a specific stat upgrade enough times.
+	hand_cannon = {
+		id = "hand_cannon",
+		name = "Sahur Hand Cannon",
+		icon = "💣",
+		tint = Color3.fromRGB(255, 140, 80),
+		baseDamage = 26,
+		fireInterval = 0.55,
+		range = 46,
+		targets = 1,
+		evolved = true,
+	},
+	barrage = {
+		id = "barrage",
+		name = "Bombardiro Barrage",
+		icon = "🌀",
+		tint = Color3.fromRGB(120, 200, 255),
+		baseDamage = 5,
+		fireInterval = 0.13,
+		range = 40,
+		targets = 2,
+		evolved = true,
+	},
+	scattergun = {
+		id = "scattergun",
+		name = "Glorbo Scattergun",
+		icon = "🍉",
+		tint = Color3.fromRGB(240, 110, 130),
+		baseDamage = 9,
+		fireInterval = 0.75,
+		range = 28,
+		targets = 7,
+		evolved = true,
+	},
+	railshot = {
+		id = "railshot",
+		name = "Cappuccino Railshot",
+		icon = "☕",
+		tint = Color3.fromRGB(200, 160, 255),
+		baseDamage = 24,
+		fireInterval = 0.6,
+		range = 50,
+		targets = 2,
+		evolved = true,
 	},
 } :: { [string]: WeaponDef }
 

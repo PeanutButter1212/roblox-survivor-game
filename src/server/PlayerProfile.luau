@@ -43,6 +43,9 @@ function PlayerProfile.new(player: Player)
 	}
 	self.weapons = { { id = Weapons.Starting, power = 1 } } :: { OwnedWeapon }
 	self.fireTimers = {} :: { [string]: number }
+	-- How many times each upgrade archetype has been taken. Evolutions gate on this, so it
+	-- persists with the rest of the build rather than resetting each run.
+	self.upgradeCounts = {} :: { [string]: number }
 	self.inLevel = false
 	self.invulnerable = false
 	self.frozen = false -- true while an upgrade pick is on screen; movement is pinned to 0
@@ -117,6 +120,31 @@ function PlayerProfile:grantWeapon(weaponId: string, power: number)
 		return
 	end
 	table.insert(self.weapons, { id = weaponId, power = power })
+end
+
+-- Records that an upgrade archetype was taken.
+function PlayerProfile:countUpgrade(archetypeId: string)
+	self.upgradeCounts[archetypeId] = (self.upgradeCounts[archetypeId] or 0) + 1
+end
+
+-- How many times an upgrade archetype has been taken (0 if never).
+function PlayerProfile:getUpgradeCount(archetypeId: string): number
+	return self.upgradeCounts[archetypeId] or 0
+end
+
+-- Swaps a base weapon for its evolved form at the given power. The base is removed rather
+-- than kept: an evolution is a choice about what the build is, not a free extra gun.
+function PlayerProfile:evolveWeapon(fromId: string, toId: string, power: number)
+	for index, owned in self.weapons do
+		if owned.id == fromId then
+			table.remove(self.weapons, index)
+			break
+		end
+	end
+	self.fireTimers[fromId] = nil
+	if not self:hasWeapon(toId) then
+		table.insert(self.weapons, { id = toId, power = power })
+	end
 end
 
 -- Returns the list of owned weapons ({ id, power }).
@@ -439,6 +467,7 @@ function PlayerProfile:serialize(): any
 		skills = skills,
 		lastClaimDay = self.lastClaimDay,
 		dailyStreak = self.dailyStreak,
+		upgradeCounts = table.clone(self.upgradeCounts),
 		pets = table.clone(self.pets),
 		equipped = table.clone(self.equipped),
 		purchaseIds = table.clone(self.purchaseIds),
@@ -476,6 +505,13 @@ function PlayerProfile:load(data: any)
 	-- would double-count.
 	-- Pets are validated against the current bestiary on load: a pet removed from
 	-- data/Pets shouldn't resurrect as an unbuildable id in someone's slots.
+	if type(data.upgradeCounts) == "table" then
+		for archetypeId, count in data.upgradeCounts do
+			if type(count) == "number" then
+				self.upgradeCounts[archetypeId] = count
+			end
+		end
+	end
 	if type(data.pets) == "table" then
 		for petId, count in data.pets do
 			if Pets.fromId(petId) and type(count) == "number" then

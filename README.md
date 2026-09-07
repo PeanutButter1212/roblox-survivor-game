@@ -17,6 +17,14 @@ each land on an upgrade of some **rarity** (Rare → Super Rare → Epic → Leg
 stronger but less likely), shown with its own icon. Click one to keep it and the run
 resumes.
 
+**Weapon evolutions** are the build payoff: own a gun and stack the right stat four times
+and the reel starts offering its evolved form — Pistol + Damage becomes the **Sahur Hand
+Cannon**, SMG + Fire Rate becomes the **Bombardiro Barrage**, Shotgun + Damage becomes the
+**Glorbo Scattergun**, Rifle + Fire Rate becomes the **Cappuccino Railshot**. Taking one
+*replaces* the base gun, so it's a real decision about what your build is. A ready
+evolution always takes one of the three slots, edged in gold, so it can never lose the
+shuffle to a routine stat roll.
+
 Survive to 0:00 to clear the stage. Die and you're returned to the lobby; walk back through
 the portal to retry. Health, XP, coins and the timer are on the HUD.
 
@@ -187,7 +195,10 @@ actually paces, so turn it off before judging balance.
   many follow you.
 - `src/shared/data/Eggs.luau` — egg prices, Robux product ids, bodies, and drop pools.
   Odds are derived from the weights.
-- `src/shared/data/Weapons.luau` — weapon stats and reel icons. Add a gun = add a row.
+- `src/shared/data/Weapons.luau` — weapon stats and reel icons. Add a gun = add a row;
+  mark it `evolved = true` and it stays out of the normal unlock pool.
+- `src/shared/data/Evolutions.luau` — which gun plus which stacked stat produces which
+  evolved weapon, and how many picks it takes.
 - `src/shared/data/Upgrades.luau` — upgrade archetypes, icons and tints.
 - `src/shared/data/Skills.luau` — skill-tree branches and costs.
 - `src/shared/data/Rarities.luau` — rarity odds, power multipliers, colours.
