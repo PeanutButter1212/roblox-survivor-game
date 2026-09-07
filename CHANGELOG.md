@@ -15,6 +15,11 @@ matched to what's in the repo.
 
 ---
 
+## v2.8 — The gate runs in CI
+`.github/workflows/verify.yml` runs `scripts/check.sh` on every pull request and every push
+to `main`, on pinned tool versions matching the local install. Branch protection requires
+it to pass before a merge.
+
 ## v2.7 — Versioning and a required review process
 This scheme: CHANGELOG.md, `GameConfig.Version` printed on server start, the ten earlier
 releases tagged retroactively, and a release process in CLAUDE.md that requires the

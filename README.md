@@ -263,6 +263,9 @@ scripts/check.sh --strict # also fail on lint warnings
 Four gates: **stylua** (formatting), **selene** (lint), **luau-lsp analyze** (strict
 typecheck against the Roblox API), and **rojo build** (the project assembles).
 
+The same script runs in CI on every pull request, on pinned tool versions matching a local
+install, and `main` is protected on it — so a red gate blocks the merge.
+
 Nothing here can execute the game — Roblox APIs aren't available to any local tool, so
 runtime behaviour is only ever confirmed by playing it in Studio.
 

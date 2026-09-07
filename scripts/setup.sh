@@ -19,12 +19,14 @@ fi
 echo
 echo "== luau-lsp (typechecker with Roblox API definitions) =="
 # Not in Homebrew core; grab the released macOS binary.
+# Pinned, and kept in step with DEFS_TAG in scripts/check.sh and LUAU_LSP_VERSION in
+# .github/workflows/verify.yml. A local install that drifts from CI's means the gate can
+# pass in one place and fail in the other.
+LUAU_LSP_TAG="1.69.0"
 if [ -x "$HOME/.local/bin/luau-lsp" ]; then
 	echo "luau-lsp already installed: $("$HOME/.local/bin/luau-lsp" --version)"
 else
-	tag=$(curl -sfL https://api.github.com/repos/JohnnyMorganz/luau-lsp/releases/latest \
-		| grep '"tag_name"' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
-	[ -n "$tag" ] || { echo "could not resolve latest luau-lsp release" >&2; exit 1; }
+	tag="$LUAU_LSP_TAG"
 	tmp=$(mktemp -d)
 	curl -sfL -o "$tmp/luau-lsp.zip" \
 		"https://github.com/JohnnyMorganz/luau-lsp/releases/download/$tag/luau-lsp-macos.zip" \
