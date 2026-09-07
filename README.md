@@ -169,6 +169,16 @@ so never hand-write a percentage; change the weights and the published table fol
 **cashing out Robux** through DevEx has its own requirements (age, ID verification, a
 minimum balance) that are entirely on Roblox's side.
 
+## Versions
+
+Every change ships as a version, tagged in git and published as a
+[GitHub release](https://github.com/PeanutButter1212/roblox-survivor-game/releases).
+`vN.0` is a major — a new pillar you'd name as a feature of the game — and `vN.M` is
+everything else. See [CHANGELOG.md](CHANGELOG.md) for the history.
+
+The running version is printed on server start and lives in `GameConfig.Version`, so you
+can tell what a Studio session actually has in it.
+
 ## Testing switches
 
 `GameConfig.Testing` holds the switches that hand out progression the game is meant to make
