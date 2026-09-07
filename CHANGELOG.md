@@ -15,6 +15,11 @@ matched to what's in the repo.
 
 ---
 
+## v2.9 — Leaderboards
+Three OrderedDataStore-backed panels on the lobby wall: highest stage, highest level,
+longest login streak. They publish and re-read on a minute timer rather than per frame,
+and show stale rows rather than blanks if the store can't be reached.
+
 ## v2.8 — The gate runs in CI
 `.github/workflows/verify.yml` runs `scripts/check.sh` on every pull request and every push
 to `main`, on pinned tool versions matching the local install. Branch protection requires
