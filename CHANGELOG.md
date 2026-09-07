@@ -15,6 +15,11 @@ matched to what's in the repo.
 
 ---
 
+## v2.7 — Versioning and a required review process
+This scheme: CHANGELOG.md, `GameConfig.Version` printed on server start, the ten earlier
+releases tagged retroactively, and a release process in CLAUDE.md that requires the
+reviewer agent to pass over a PR before it merges.
+
 ## v2.6 — Enemies that shoot back
 Boneca Ambalabu and the two bombers hold their distance and fire dodgeable projectiles
 instead of closing; they deal no contact damage, so closing the gap is the counterplay.

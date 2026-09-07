@@ -33,10 +33,10 @@ the portal to retry. Health, XP, coins and the timer are on the HUD.
 Fourteen brainrots, each with its own body, stat profile and **behaviour**:
 
 - **Chasers** walk straight at you. Tung Tung Tung Sahur, Chimpanzini Bananini and Brr Brr
-  Patapim from stage 1; Boneca Ambalabu, Lirili Larila and Frigo Camelo later.
-- **Chargers** — Tralalero Tralala, Bombardiro Crocodilo, Cappuccino Assassino, Bombombini
-  Gusini — close in, **stop dead to telegraph**, then dash along the line they committed
-  to. Stand still and you're hit; step aside and they miss.
+  Patapim from stage 1; Lirili Larila and Frigo Camelo later.
+- **Chargers** — Tralalero Tralala and Cappuccino Assassino — close in, **stop dead to
+  telegraph**, then dash along the line they committed to. Stand still and you're hit; step
+  aside and they miss.
 - **Circlers** — Bobrito Bandito, Trippi Troppi, Ballerina Cappuccina — hold a ring around
   you and strafe instead of piling in.
 - **Shooters** — Boneca Ambalabu, and the two bombers Bombardiro Crocodilo and Bombombini
