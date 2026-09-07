@@ -127,24 +127,66 @@ function EnemyManager:update(dt: number, target: Target, maxAlive: number, spawn
 end
 
 -- Returns up to `count` nearest living enemies within `range` of `position`.
+--
+-- This is the hottest query in the game: PetService calls it for every equipped pet every
+-- frame (it needs a target to face, not just to fire), and every weapon calls it each time
+-- it fires. It used to build a table per candidate and sort the whole lot, which at a late
+-- stage's enemy cap meant hundreds of allocations and three full sorts per player per
+-- frame — pure garbage for the collector, multiplied by every player sharing the server.
+--
+-- Now it keeps a top-k list by insertion. `count` is only ever 1..7, so that's a handful of
+-- comparisons per enemy against sorting the entire swarm, and it allocates two small fixed
+-- tables instead of one per enemy in range. Distances stay squared: ordering is identical
+-- and it saves a square root per enemy.
 function EnemyManager:getNearest(position: Vector3, range: number, count: number): { any }
-	local found = {}
+	-- The old collect-and-sort form returned an empty list for a non-positive count; this
+	-- one would index bestDist[0] and throw, from inside the shared Heartbeat loop, taking
+	-- every player's update down with it. No data row asks for 0 targets today, but adding
+	-- a weapon is supposed to be a data change, not a way to crash the server.
+	if count < 1 then
+		return {}
+	end
+
+	local best = table.create(count)
+	local bestDist = table.create(count)
+	local filled = 0
+	-- Squaring makes a negative range behave like its positive twin, where the old
+	-- distance comparison matched nothing. Unreachable — GameConfig.targetRange only
+	-- clamps downward and no row is negative — but it is a real change in meaning.
+	local rangeSq = range * range
+
 	for _, enemy in self.enemies do
-		if not enemy:isDead() then
-			local d = enemy:distanceTo(position)
-			if d <= range then
-				table.insert(found, { enemy = enemy, dist = d })
-			end
+		if enemy:isDead() then
+			continue
 		end
+		local offset = enemy:getPosition() - position
+		local distSq = offset.X * offset.X + offset.Y * offset.Y + offset.Z * offset.Z
+		if distSq > rangeSq then
+			continue
+		end
+
+		local slot
+		if filled < count then
+			filled += 1
+			slot = filled
+		elseif distSq >= bestDist[count] then
+			continue -- further than everything we're already holding
+		else
+			slot = count -- displaces the worst of the current best
+		end
+
+		-- Bubble it up into place; the list is short, so this is a few swaps at most.
+		local i = slot
+		while i > 1 and bestDist[i - 1] > distSq do
+			best[i] = best[i - 1]
+			bestDist[i] = bestDist[i - 1]
+			i -= 1
+		end
+		best[i] = enemy
+		bestDist[i] = distSq
 	end
-	table.sort(found, function(a, b)
-		return a.dist < b.dist
-	end)
-	local result = {}
-	for i = 1, math.min(count, #found) do
-		result[i] = found[i].enemy
-	end
-	return result
+
+	return best
 end
 
 -- Damages an enemy; on death, removes it and reports the kill (XP, where it fell, and any
