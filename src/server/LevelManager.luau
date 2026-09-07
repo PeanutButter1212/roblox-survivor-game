@@ -376,6 +376,12 @@ function LevelManager:buildStageSelector()
 	end)
 end
 
+-- Forgets a leaving player. Without this the portal debounce keeps a reference to every
+-- player who ever touched it, for the life of the server.
+function LevelManager:removePlayer(player: Player)
+	self.touchDebounce[player] = nil
+end
+
 -- Sets the player's chosen stage (the profile clamps it to [1, highest cleared + 1], so
 -- they can pick anything they've unlocked but not skip ahead). Ignored mid-run.
 function LevelManager:selectStage(player: Player, stageNumber: number)

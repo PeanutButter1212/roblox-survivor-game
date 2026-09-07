@@ -21,7 +21,8 @@ local LobbyDecor = require(script.Parent:WaitForChild("LobbyDecor"))
 local LobbyGallery = Class.new()
 
 local DISPLAY_SCALE = 0.5 -- Bombardiro is 7 studs wide at full size; the hall is 90 across
-local SPACING = 6.2
+local MAX_SPACING = 6.2 -- comfortable gap; the row tightens below this as the roster grows
+local END_MARGIN = 10 -- keeps the outermost plinths clear of the side walls
 local PLINTH_HEIGHT = 3
 local BACK_INSET = 9 -- studs in from the back wall
 
@@ -37,11 +38,15 @@ function LobbyGallery.new()
 	local center = GameConfig.World.LobbyCenter
 	local floorY = center.Y + 0.5
 	local z = center.Z + GameConfig.World.LobbySize / 2 - BACK_INSET
+	-- Spacing is derived from the room rather than fixed, so adding brainrots tightens the
+	-- row instead of pushing the end pedestals through the wall.
 	local count = #Enemies.List
-	local startX = center.X - (count - 1) * SPACING / 2
+	local usable = GameConfig.World.LobbySize - END_MARGIN * 2
+	local spacing = math.min(MAX_SPACING, usable / math.max(1, count - 1))
+	local startX = center.X - (count - 1) * spacing / 2
 
 	for index, def in Enemies.List do
-		self:buildStand(def, Vector3.new(startX + (index - 1) * SPACING, floorY, z))
+		self:buildStand(def, Vector3.new(startX + (index - 1) * spacing, floorY, z))
 	end
 	return self
 end

@@ -45,7 +45,9 @@ function SkillTreeService:buildBoard()
 	board.Position = center + Vector3.new(-26, 4.5, 0)
 	board.Material = Enum.Material.SmoothPlastic
 	board.Color = Color3.fromRGB(30, 28, 44)
-	board.Parent = Workspace
+	-- Into the Lobby folder LevelManager made (it runs first), so frameBoard's plinth and
+	-- rails land there too rather than loose at the Workspace root.
+	board.Parent = Workspace:FindFirstChild("Lobby") or Workspace
 
 	-- Same framing the stage-select station gets, in this board's own gold accent.
 	LobbyDecor.frameBoard(board, Color3.fromRGB(255, 205, 90))

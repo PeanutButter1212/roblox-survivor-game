@@ -93,6 +93,9 @@ function Enemy.new(def: any, position: Vector3, stats: Stats, parent: Instance, 
 	self.timer = 0
 	self.dashDir = nil :: Vector3?
 	self.spin = if math.random() < 0.5 then -1 else 1
+	self.lunging = false
+	-- Staggered so a group of circlers doesn't dive in unison.
+	self.lungeTimer = GameConfig.Enemies.Circler.LungeEvery * math.random()
 	self.pieces = {} :: { { part: BasePart, color: Color3 } }
 
 	local model = Instance.new("Model")
@@ -174,10 +177,24 @@ function Enemy:getCoinReward(): number
 	return self.coins
 end
 
--- Contact reach: the shared base range widened by the brainrot's own footprint, so a
--- Bombardiro's wingspan connects where a Chimpanzini's has to get close.
+-- Contact reach: the shared base range widened by this enemy's own footprint, so a
+-- Bombardiro's wingspan connects where a Chimpanzini's has to get close. Uses the scaled
+-- radius, so a splitter's half-size children don't keep their parent's reach.
 function Enemy:getContactRange(baseRange: number): number
-	return baseRange + math.max(self.def.hitbox.X, self.def.hitbox.Z) / 2
+	return baseRange + self.radius
+end
+
+-- Whether the enemy can land a contact hit on `position`: horizontal distance inside its
+-- reach, and within `heightBand` vertically. Deliberately not a 3D distance — obstacles
+-- are standable, and a diagonal test let a player stood on one sit out of reach while
+-- their own weapons carried on firing. The band still stops hits across a real drop.
+function Enemy:canReach(position: Vector3, baseRange: number, heightBand: number): boolean
+	local pos = self.part.Position
+	if math.abs(position.Y - pos.Y) > heightBand then
+		return false
+	end
+	local flat = Vector3.new(position.X - pos.X, 0, position.Z - pos.Z)
+	return flat.Magnitude <= self:getContactRange(baseRange)
 end
 
 -- Distance from the enemy to a world position.
@@ -217,9 +234,24 @@ function Enemy:chargerStep(dt: number, dir: Vector3, dist: number): Vector3
 end
 
 -- A circler: holds a ring at Orbit studs and strafes around it, closing or backing off
--- when it drifts outside the band. Keeps the swarm from collapsing into one blob.
-function Enemy:circlerStep(dir: Vector3, dist: number): Vector3
+-- when it drifts outside the band, and periodically diving at the player. The dive is what
+-- makes it dangerous — the orbit distance is well outside contact range, so without it a
+-- circler could never actually hit anyone while still taking up a slot in the live cap.
+function Enemy:circlerStep(dt: number, dir: Vector3, dist: number): Vector3
 	local cfg = GameConfig.Enemies.Circler
+	self.lungeTimer -= dt
+	if self.lunging then
+		if self.lungeTimer > 0 then
+			return dir * self.speed * cfg.LungeFactor
+		end
+		self.lunging = false
+		self.lungeTimer = cfg.LungeEvery
+	elseif self.lungeTimer <= 0 then
+		self.lunging = true
+		self.lungeTimer = cfg.LungeTime
+		return dir * self.speed * cfg.LungeFactor
+	end
+
 	local speed = self.speed * cfg.StrafeFactor
 	if dist > cfg.Orbit + cfg.Tolerance then
 		return dir * speed
@@ -245,7 +277,7 @@ function Enemy:steer(dt: number, targetPos: Vector3, arena: any)
 	if self.def.behaviour == "charger" then
 		velocity = self:chargerStep(dt, dir, dist)
 	elseif self.def.behaviour == "circler" then
-		velocity = self:circlerStep(dir, dist)
+		velocity = self:circlerStep(dt, dir, dist)
 	else
 		velocity = dir * self.speed
 	end

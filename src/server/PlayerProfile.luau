@@ -19,6 +19,7 @@ export type OwnedWeapon = { id: string, power: number }
 local BASE_HEALTH = 100 -- Roblox's default Humanoid MaxHealth
 local BASE_JUMP_POWER = 50 -- Roblox's defaults, tracked on the profile so a freeze can restore
 local BASE_JUMP_HEIGHT = 7.2 -- them rather than guessing (see applyMovement)
+local MAX_PURCHASE_IDS = 50 -- how many recent receipt ids to remember for de-duplication
 
 -- XP needed to go from `level` to the next one. Grows geometrically.
 local function xpForLevel(level: number): number
@@ -50,6 +51,9 @@ function PlayerProfile.new(player: Player)
 	self.maxStageCleared = 0 -- highest stage number ever cleared; gates stage selection
 	self.skills = { health = 0, speed = 0, damage = 0 } :: { [string]: number } -- lobby skill-tree levels (persisted)
 	self.pets = {} :: { [string]: number } -- petId -> how many hatched (persisted)
+	-- Recent Robux PurchaseIds, oldest first. Persisted alongside the pets they bought so
+	-- a re-delivered receipt can be recognised as already-granted; see PetService.
+	self.purchaseIds = {} :: { string }
 	self.equipped = {} :: { string } -- petIds currently following, capped at Pets.MaxEquipped
 	self.lastClaimDay = 0 -- UTC day index of the last daily-bonus claim (persisted)
 	self.dailyStreak = 0 -- consecutive-day login streak (persisted)
@@ -281,6 +285,41 @@ function PlayerProfile:addPet(petId: string)
 	end
 end
 
+-- Whether a Robux purchase with this receipt id has already been granted.
+function PlayerProfile:hasPurchase(purchaseId: string): boolean
+	return table.find(self.purchaseIds, purchaseId) ~= nil
+end
+
+-- Records a granted purchase, keeping only the most recent ids so the save can't grow
+-- without bound. Roblox only re-delivers recent receipts, so a short window is enough.
+function PlayerProfile:recordPurchase(purchaseId: string)
+	table.insert(self.purchaseIds, purchaseId)
+	while #self.purchaseIds > MAX_PURCHASE_IDS do
+		table.remove(self.purchaseIds, 1)
+	end
+end
+
+-- Undoes recordPurchase, used when the grant it belongs to could not be persisted.
+function PlayerProfile:forgetPurchase(purchaseId: string)
+	local index = table.find(self.purchaseIds, purchaseId)
+	if index then
+		table.remove(self.purchaseIds, index)
+	end
+end
+
+-- Takes one copy of a pet back off the player, unequipping it if that was the last one.
+-- Only used to roll back a grant whose save failed — a half-applied purchase left in
+-- memory would be written by the next autosave and then granted again on the retry.
+function PlayerProfile:revokePet(petId: string)
+	local remaining = (self.pets[petId] or 0) - 1
+	if remaining > 0 then
+		self.pets[petId] = remaining
+		return
+	end
+	self.pets[petId] = nil
+	self:unequipPet(petId)
+end
+
 -- Equips a pet the player owns. Returns false (changing nothing) if they don't own it,
 -- it's already out, or every slot is full — the caller reports that back to the client.
 function PlayerProfile:equipPet(petId: string): boolean
@@ -394,6 +433,7 @@ function PlayerProfile:serialize(): any
 		dailyStreak = self.dailyStreak,
 		pets = table.clone(self.pets),
 		equipped = table.clone(self.equipped),
+		purchaseIds = table.clone(self.purchaseIds),
 		stats = {
 			damageMult = self.stats.damageMult,
 			fireRateMult = self.stats.fireRateMult,
@@ -412,12 +452,15 @@ function PlayerProfile:load(data: any)
 	self.level = data.level or self.level
 	self.xp = data.xp or self.xp
 	self.xpToNext = data.xpToNext or xpForLevel(self.level)
-	self.stage = data.stage or self.stage
 	self.coins = data.coins or self.coins
 	self.maxStageCleared = data.maxStageCleared or self.maxStageCleared
 	self.lastClaimDay = data.lastClaimDay or self.lastClaimDay
 	self.dailyStreak = data.dailyStreak or self.dailyStreak
-	self.player:SetAttribute("Stage", self.stage)
+	-- Through setStage, not straight onto the field: a save written while
+	-- UnlockAllStages was on would otherwise keep launching a stage the player never
+	-- earned, even after the flag is turned back off. setStage also rejects NaN and
+	-- floors fractions, which a hand-edited or corrupted save could carry.
+	self:setStage(data.stage or self.stage)
 	self.player:SetAttribute("MaxStage", self.maxStageCleared)
 	self.player:SetAttribute("Coins", self.coins)
 	-- Skill levels are restored only as counters: their stat buffs were already baked
@@ -434,8 +477,17 @@ function PlayerProfile:load(data: any)
 	end
 	if type(data.equipped) == "table" then
 		for _, petId in data.equipped do
-			if #self.equipped < Pets.MaxEquipped and self:ownsPet(petId) then
+			-- table.find guards a save that somehow lists the same pet twice: two slots
+			-- holding one id would make unequipPet only ever remove one of them.
+			if #self.equipped < Pets.MaxEquipped and self:ownsPet(petId) and not table.find(self.equipped, petId) then
 				table.insert(self.equipped, petId)
+			end
+		end
+	end
+	if type(data.purchaseIds) == "table" then
+		for _, id in data.purchaseIds do
+			if type(id) == "string" then
+				table.insert(self.purchaseIds, id)
 			end
 		end
 	end

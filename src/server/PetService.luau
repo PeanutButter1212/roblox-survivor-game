@@ -27,12 +27,15 @@ local Pet = require(script.Parent:WaitForChild("Pet"))
 
 local PetService = Class.new()
 
+local REQUEST_COOLDOWN = 0.25 -- seconds between accepted HatchEgg/EquipPet calls per player
+
 -- Creates the service. `dataService` is needed for the purchase path (see the header).
 function PetService.new(progression: any, dataService: any)
 	local self = setmetatable({}, PetService)
 	self.progression = progression
 	self.dataService = dataService
 	self.live = {} :: { [Player]: { any } }
+	self.lastRequest = {} :: { [Player]: number } -- debounce for the client-facing remotes
 	self.orbit = 0 -- shared orbit phase, so every player's pets circle in step
 
 	local folder = Instance.new("Folder")
@@ -45,16 +48,28 @@ function PetService.new(progression: any, dataService: any)
 	return self
 end
 
+-- Rate-limits a player's remote calls. Equipping rebuilds every live pet model, so an
+-- unthrottled client could make the server churn Instances as fast as it can fire.
+function PetService:accept(player: Player): boolean
+	local now = os.clock()
+	local last = self.lastRequest[player]
+	if last and now - last < REQUEST_COOLDOWN then
+		return false
+	end
+	self.lastRequest[player] = now
+	return true
+end
+
 -- Wires the client-facing requests. Both re-validate against the profile.
 function PetService:hookRemotes()
 	Remotes.get("HatchEgg").OnServerEvent:Connect(function(player, eggId)
-		if typeof(eggId) == "string" then
+		if typeof(eggId) == "string" and self:accept(player) then
 			self:hatchWithCoins(player, eggId)
 		end
 	end)
 
 	Remotes.get("EquipPet").OnServerEvent:Connect(function(player, petId)
-		if typeof(petId) == "string" then
+		if typeof(petId) == "string" and self:accept(player) then
 			self:toggleEquip(player, petId)
 		end
 	end)
@@ -141,13 +156,24 @@ function PetService:hatchWithCoins(player: Player, eggId: string)
 		return
 	end
 	local petId = self:grantFromEgg(player, egg)
-	if petId then
-		self:playReveal(player, petId)
+	if not petId then
+		-- The pool named a pet that no longer exists. Give the coins back rather than
+		-- quietly eating them.
+		profile:addCoins(egg.coinPrice)
+		return
 	end
+	self:playReveal(player, petId)
 	self:sync(player, petId)
 end
 
 -- Robux path. A developer product purchase arrives here once Roblox has taken payment.
+--
+-- Roblox re-delivers a receipt until it is answered PurchaseGranted, so this has to be
+-- idempotent: the receipt id is recorded on the profile alongside the pet it bought, and a
+-- redelivery of an id we have already honoured is answered immediately instead of rolling
+-- a second pet. And because the grant lands in memory before the save, a failed save must
+-- undo it — otherwise the next autosave persists the pet anyway and the retry grants
+-- another one, so one payment yields two pets.
 function PetService:hookReceipts()
 	MarketplaceService.ProcessReceipt = function(receipt)
 		local player = Players:GetPlayerByUserId(receipt.PlayerId)
@@ -157,11 +183,17 @@ function PetService:hookReceipts()
 			return Enum.ProductPurchaseDecision.NotProcessedYet
 		end
 
+		local profile = self.progression:getProfile(player)
 		local egg = Eggs.fromProductId(receipt.ProductId)
-		if not egg then
-			-- Unknown product: not ours to grant, and swallowing it would take their
-			-- Robux for nothing.
+		if not profile or not egg then
+			-- Unknown product, or no profile to grant into: not ours to honour, and
+			-- swallowing it would take their Robux for nothing.
 			return Enum.ProductPurchaseDecision.NotProcessedYet
+		end
+
+		local purchaseId = tostring(receipt.PurchaseId)
+		if profile:hasPurchase(purchaseId) then
+			return Enum.ProductPurchaseDecision.PurchaseGranted -- already honoured
 		end
 
 		local granted: string? = nil
@@ -172,10 +204,15 @@ function PetService:hookReceipts()
 			return Enum.ProductPurchaseDecision.NotProcessedYet
 		end
 
-		-- Only now is it safe to tell Roblox the purchase completed.
+		-- Recorded before the save so both land in the same serialised payload.
+		profile:recordPurchase(purchaseId)
 		if not self.dataService:save(player) then
+			profile:revokePet(granted :: string)
+			profile:forgetPurchase(purchaseId)
+			self:respawnFor(player)
 			return Enum.ProductPurchaseDecision.NotProcessedYet
 		end
+
 		self:playReveal(player, granted :: string)
 		self:sync(player, granted)
 		return Enum.ProductPurchaseDecision.PurchaseGranted
@@ -197,15 +234,17 @@ function PetService:toggleEquip(player: Player, petId: string)
 	end
 end
 
--- Rebuilds a player's live pets from their equipped list.
+-- Rebuilds a player's live pets from their equipped list. The teardown happens only once
+-- we know we can rebuild: destroying first and then bailing on a missing root part left
+-- players with no pets for the rest of the session.
 function PetService:respawnFor(player: Player)
-	self:despawnFor(player)
 	local profile = self.progression:getProfile(player)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not profile or not root then
 		return
 	end
+	self:despawnFor(player)
 
 	local live = {}
 	for _, petId in profile:getEquipped() do
@@ -231,10 +270,14 @@ end
 
 -- Registers a player: rebuild their pets on every spawn, and push their state once.
 function PetService:setupPlayer(player: Player)
-	player.CharacterAdded:Connect(function()
-		-- The character is brand new; give it a beat to have a root part.
-		task.defer(function()
-			self:respawnFor(player)
+	player.CharacterAdded:Connect(function(character)
+		-- Wait for the root part rather than deferring one frame and hoping: losing that
+		-- race used to leave the player pet-less until they toggled one in the shop.
+		task.spawn(function()
+			local root = character:WaitForChild("HumanoidRootPart", 5)
+			if root and player.Parent and player.Character == character then
+				self:respawnFor(player)
+			end
 		end)
 	end)
 	if player.Character then
@@ -246,6 +289,7 @@ end
 -- Forgets a leaving player.
 function PetService:removePlayer(player: Player)
 	self:despawnFor(player)
+	self.lastRequest[player] = nil
 end
 
 -- Per-frame movement for every player's pets, wherever they are. Called from the server's
@@ -259,8 +303,14 @@ function PetService:update(dt: number)
 		if not root then
 			continue
 		end
+		-- updateCombat stops being called when a run ends, so its last target would
+		-- otherwise keep pets in the lobby staring at a point in a destroyed arena.
+		local inLevel = player:GetAttribute("InLevel") == true
 		local count = #live
 		for index, pet in live do
+			if not inLevel then
+				pet.lastTarget = nil
+			end
 			local angle = self.orbit + (index - 1) * (math.pi * 2 / math.max(1, count))
 			pet:update(dt, root.Position, angle, pet.lastTarget)
 		end
