@@ -127,6 +127,10 @@ Instance mapping lives in `default.project.json`.
   grants XP directly. Its shorter magnet radius than a coin's is the point — it pulls you
   toward where the brainrot died. Add a pickup kind with a row in `data/Pickups` and a
   handler in `StageInstance`; `PickupManager` never names a kind.
+- **`EnemyManager:getNearest` is the hot path.** Every pet calls it every frame and every
+  weapon calls it on each shot, for every player sharing the server. It must stay sort-free
+  and allocate a fixed amount rather than one table per candidate — it keeps a top-k list
+  by insertion on squared distances. Don't "simplify" it back into collect-then-sort.
 - **One Heartbeat loop**, in `init.server.luau`. Do not add `RunService` loops elsewhere;
   have the owning service expose `update(dt)` and call it from there.
 - **Server is authoritative.** Anything a client asks for over a RemoteEvent (upgrade

@@ -279,6 +279,28 @@ install, and `main` is protected on it — so a red gate blocks the merge.
 Nothing here can execute the game — Roblox APIs aren't available to any local tool, so
 runtime behaviour is only ever confirmed by playing it in Studio.
 
+## Scaling
+
+10,000 concurrent players is not one server — Roblox shards automatically into hundreds of
+them. What you control is the cost of a single server and of the data layer.
+
+The design's scaling cost is that **every player gets their own arena in the same server**.
+Roughly per active player: ~420 enemy parts (`GameConfig.Enemies.DetailBudget`), ~200 arena
+props and obstacles, up to 90 XP orbs, 40 coins, 60 projectiles, and their pets — call it
+**1,300 parts each**. Ten players is ~13,000 replicating parts; twenty is not viable.
+
+Two place settings do most of the work, and neither lives in this repo:
+
+- **`MaxPlayers` should be low** — 8 to 12. Let Roblox spin up more servers rather than
+  packing more arenas into one.
+- **Turn on `StreamingEnabled`.** Arenas are built far apart and players never need to see
+  each other's, so streaming is close to free here and is the single biggest win available.
+
+On the data side, note that leaderboard reads scale with the number of *servers*, not
+players — every server reads the same ordered stores on its own timer. Per-server budgets
+are fine, but `MemoryStoreService` is the better backing for a live leaderboard at real
+scale.
+
 ## Notes
 
 - `rojo serve` only syncs code and instances defined in `src/`. Things you build by hand in
