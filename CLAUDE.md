@@ -54,6 +54,7 @@ Small documented OOP classes, one responsibility each, built with `util/Class.lu
 `StageSelectController` (picker + portal door display) · `DailyBonusController` (toast) ·
 `AtmosphereController` (Lighting: lobby preset + each stage's mood) ·
 `PetShopController` (eggs, published odds, collection) ·
+`SoundController` (all audio, off replicated state) ·
 `Icons` (UI icons drawn from Frames — nothing here can upload an image asset).
 
 ### `src/shared` → ReplicatedStorage.Shared
